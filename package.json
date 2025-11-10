@@ -1,0 +1,30 @@
+{
+  "name": "my-component-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "组件库 monorepo 工作区",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter docs dev",
+    "build": "pnpm run build --filter './packages/*'",
+    "build:components": "pnpm --filter @my-vue/components build",
+    "build:docs": "pnpm --filter docs build",
+    "lint": "pnpm run lint --filter './packages/*'",
+    "test": "pnpm run test --filter './packages/*'",
+    "clean": "pnpm -r exec rm -rf dist node_modules .turbo",
+    "prepublishOnly": "pnpm run build"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.17.20",
+    "@types/node": "^20.10.6",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=16",
+    "pnpm": ">=7"
+  },
+  "dependencies": {
+    "@ant-design/icons-vue": "^7.0.1",
+    "lodash": "^4.17.21"
+  }
+}

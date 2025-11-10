@@ -1,0 +1,46 @@
+/* 自定义样式 */
+
+/* 代码块样式 */
+.vp-code-group {
+  margin: 16px 0;
+}
+
+/* 组件预览样式 */
+.demoblock {
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  margin: 16px 0;
+}
+
+.demoblock-title {
+  padding: 12px;
+  border-bottom: 1px solid #e8e8e8;
+  font-weight: 500;
+  background: #fafafa;
+}
+
+.demoblock-content {
+  padding: 16px;
+}
+
+.demoblock-code {
+  border-top: 1px solid #e8e8e8;
+  background: #f5f5f5;
+}
+
+/* 调整间距 */
+.vp-doc {
+  padding: 32px 48px;
+}
+
+/* 组件示例间距 */
+.example {
+  margin: 16px 0;
+}
+
+/* 代码编辑器样式 */
+.vp-code-group .tabs {
+  border: 1px solid #e8e8e8;
+  border-radius: 4px 4px 0 0;
+}
+

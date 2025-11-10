@@ -1,0 +1,44 @@
+/* 自定义样式 - Demo 相关 */
+
+.demo {
+  padding: 20px;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  background: #fafafa;
+  margin: 16px 0;
+}
+
+.demo-vertical {
+  padding: 20px;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  background: #fafafa;
+  margin: 16px 0;
+}
+
+.demo-vertical > div {
+  display: flex;
+  gap: 8px;
+}
+
+/* 代码块与演示之间的关联 */
+.vp-doc [class*="language-"] {
+  margin-top: 16px;
+}
+
+/* 暗色模式 */
+.dark .demo,
+.dark .demo-vertical {
+  border-color: #434343;
+  background: #141414;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .demo,
+  .demo-vertical {
+    padding: 16px;
+  }
+}
+
+

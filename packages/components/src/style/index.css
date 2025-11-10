@@ -1,0 +1,15 @@
+/* 全局样式变量 */
+:root {
+  --primary-color: #1890ff;
+  --success-color: #52c41a;
+  --warning-color: #faad14;
+  --error-color: #f5222d;
+  --border-color: #d9d9d9;
+  --border-radius: 4px;
+}
+
+/* 基础样式重置 */
+* {
+  box-sizing: border-box;
+}
+

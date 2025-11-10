@@ -1,0 +1,70 @@
+name: Deploy Docs to GitHub Pages
+
+on:
+  # 在推送到 main 分支时触发（仅当文档或依赖的组件/工具变化时）
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/docs/**'              # 文档内容变化
+      - 'packages/components/**'        # 组件变化（文档依赖）
+      - 'packages/utils/**'             # 工具变化（文档依赖）
+      - '.github/workflows/deploy-docs.yml'  # 工作流配置变化
+  
+  # 允许手动触发
+  workflow_dispatch:
+
+# 设置 GITHUB_TOKEN 的权限，允许部署到 GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 允许一个并发部署
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 获取完整历史记录
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build docs only
+        run: pnpm build:docs
+        # 只构建文档，不构建其他包
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: packages/docs/.vitepress/dist
+        # 只上传文档构建产物
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
