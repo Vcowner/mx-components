@@ -1,4 +1,4 @@
-# My Vue Components
+# mt-components
 
 基于 Ant Design Vue 的二次封装组件库 Monorepo 项目
 
@@ -168,4 +168,3 @@ MIT
 ## 🤝 贡献
 
 查看 [CONTRIBUTING.md](./CONTRIBUTING.md) 了解如何贡献代码
-
