@@ -5,6 +5,9 @@ export default defineConfig({
   title: 'MX UI',
   description: '基于 Ant Design Vue 的二次封装组件库',
   
+  // GitHub Pages base 路径
+  base: '/mt-components/',
+  
   head: [
     ['link', { rel: 'icon', href: '/favicon.ico' }],
     ['link', { rel: 'stylesheet', href: '/custom.css' }]
@@ -94,7 +97,7 @@ export default defineConfig({
     
     // 社交链接
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/your-username/mx-ui' }
+      { icon: 'github', link: 'https://github.com/Vcowner/mt-components' }
     ],
     
     // 页脚
@@ -105,7 +108,7 @@ export default defineConfig({
     
     // 编辑链接
     editLink: {
-      pattern: 'https://github.com/your-username/mx-ui/tree/main/packages/docs/:path',
+      pattern: 'https://github.com/Vcowner/mt-components/tree/main/packages/docs/:path',
       text: '在 GitHub 上编辑此页'
     },
     
