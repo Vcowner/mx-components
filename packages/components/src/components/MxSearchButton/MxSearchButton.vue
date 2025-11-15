@@ -5,10 +5,10 @@
     :disabled="disabled || loading"
     :loading="loading"
     :permission="permission"
-    :customClass="customClass"
+    :custom-class="customClass"
     @click="handleSearch"
   >
-    <template #icon v-if="!hideIcon && !loading">
+    <template v-if="!hideIcon && !loading" #icon>
       <SearchOutlined />
     </template>
     <slot>搜索</slot>
@@ -18,22 +18,22 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, computed } from 'vue'
 import { SearchOutlined } from '@ant-design/icons-vue'
-import { debounce } from 'lodash'
+import debounceFn from 'lodash/debounce'
 import MxButton from '../MxButton/MxButton.vue'
 
 /**
  * 搜索按钮组件
  * 专用于搜索操作，自动添加搜索图标
  * 支持权限控制、加载状态、防抖、键盘快捷键
- * 
+ *
  * @example
  * ```vue
  * <!-- 基础用法 -->
  * <mx-search-button @search="handleSearch" />
- * 
+ *
  * <!-- 防抖搜索 -->
  * <mx-search-button :debounce="300" @search="handleSearch" />
- * 
+ *
  * <!-- 支持回车键 -->
  * <mx-search-button :enterSubmit="true" @search="handleSearch" />
  * ```
@@ -73,7 +73,8 @@ const props = withDefaults(defineProps<Props>(), {
   disabled: false,
   loading: false,
   customClass: '',
-  debounce: 0,
+  permission: undefined,
+  debounce: 200,
   enterSubmit: false,
   hideIcon: false
 })
@@ -81,7 +82,7 @@ const props = withDefaults(defineProps<Props>(), {
 /** 防抖函数 */
 const debouncedSearch = computed(() => {
   if (props.debounce > 0) {
-    return debounce(() => {
+    return debounceFn(() => {
       emit('search')
     }, props.debounce)
   } else {
@@ -121,6 +122,4 @@ onUnmounted(() => {
 })
 </script>
 
-<style scoped lang="less">
-</style>
-
+<style scoped lang="scss"></style>

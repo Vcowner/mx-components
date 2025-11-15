@@ -5,7 +5,6 @@ import 'ant-design-vue/dist/reset.css'
 import Demo from './components/Demo.vue'
 // 直接从组件目录导入（从 .vitepress/theme/ 到 components/src/components/ 需要三级目录）
 import MxButton from '../../../components/src/components/MxButton/MxButton.vue'
-import MxInput from '../../../components/src/components/MxInput/MxInput.vue'
 import MxDeleteButton from '../../../components/src/components/MxDeleteButton/MxDeleteButton.vue'
 import MxImportButton from '../../../components/src/components/MxImportButton/MxImportButton.vue'
 import MxSearchButton from '../../../components/src/components/MxSearchButton/MxSearchButton.vue'
@@ -14,6 +13,8 @@ import MxSubmitButton from '../../../components/src/components/MxSubmitButton/Mx
 import MxButtonGroup from '../../../components/src/components/MxButtonGroup/MxButtonGroup.vue'
 import MxTableAction from '../../../components/src/components/MxTableAction/MxTableAction.vue'
 import MxBatchAction from '../../../components/src/components/MxBatchAction/MxBatchAction.vue'
+import MxTable from '../../../components/src/components/MxTable/MxTable.vue'
+import MxTableToolbar from '../../../components/src/components/MxTableToolbar/MxTableToolbar.vue'
 
 export default {
   extends: DefaultTheme,
@@ -23,7 +24,6 @@ export default {
     
     // 注册 MX UI 组件
     app.component('MxButton', MxButton)
-    app.component('MxInput', MxInput)
     app.component('MxDeleteButton', MxDeleteButton)
     app.component('MxImportButton', MxImportButton)
     app.component('MxSearchButton', MxSearchButton)
@@ -32,6 +32,8 @@ export default {
     app.component('MxButtonGroup', MxButtonGroup)
     app.component('MxTableAction', MxTableAction)
     app.component('MxBatchAction', MxBatchAction)
+    app.component('MxTable', MxTable)
+    app.component('MxTableToolbar', MxTableToolbar)
     
     // 注册全局 Demo 组件
     app.component('VDemo', Demo)

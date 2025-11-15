@@ -70,5 +70,3 @@ export interface MxImportButtonProps {
   /** 下载模板配置 */
   downloadTemplate?: DownloadTemplateConfig
 }
-
-

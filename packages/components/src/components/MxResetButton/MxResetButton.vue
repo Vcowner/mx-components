@@ -5,10 +5,10 @@
     :disabled="disabled || loading"
     :loading="loading"
     :permission="permission"
-    :customClass="customClass"
+    :custom-class="customClass"
     @click="handleReset"
   >
-    <template #icon v-if="!hideIcon && !loading">
+    <template v-if="!hideIcon && !loading" #icon>
       <ReloadOutlined />
     </template>
     <slot>重置</slot>
@@ -18,22 +18,22 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, computed } from 'vue'
 import { ReloadOutlined } from '@ant-design/icons-vue'
-import { debounce } from 'lodash'
+import debounceFn from 'lodash/debounce'
 import MxButton from '../MxButton/MxButton.vue'
 
 /**
  * 重置按钮组件
  * 专用于重置/清空操作，自动添加重置图标
  * 支持权限控制、加载状态、防抖、键盘快捷键
- * 
+ *
  * @example
  * ```vue
  * <!-- 基础用法 -->
  * <mx-reset-button @reset="handleReset" />
- * 
+ *
  * <!-- 防抖重置 -->
  * <mx-reset-button :debounce="300" @reset="handleReset" />
- * 
+ *
  * <!-- 支持快捷键 -->
  * <mx-reset-button :keyboard="true" @reset="handleReset" />
  * ```
@@ -73,7 +73,8 @@ const props = withDefaults(defineProps<Props>(), {
   disabled: false,
   loading: false,
   customClass: '',
-  debounce: 0, // 重置按钮默认不防抖
+  permission: undefined,
+  debounce: 200, // 重置按钮默认不防抖
   keyboard: false,
   hideIcon: false
 })
@@ -81,7 +82,7 @@ const props = withDefaults(defineProps<Props>(), {
 /** 防抖函数 */
 const debouncedReset = computed(() => {
   if (props.debounce > 0) {
-    return debounce(() => {
+    return debounceFn(() => {
       emit('reset')
     }, props.debounce)
   } else {
@@ -125,7 +126,4 @@ onUnmounted(() => {
 export type { Props as MxResetButtonProps }
 </script>
 
-<style scoped lang="less">
-</style>
-
-
+<style scoped lang="scss"></style>

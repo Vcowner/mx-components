@@ -8,4 +8,3 @@ export interface MxButtonGroupProps {
   /** 按钮间距（像素） */
   gap?: number
 }
-

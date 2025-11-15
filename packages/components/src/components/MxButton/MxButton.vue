@@ -28,7 +28,7 @@
 
 <script setup lang="ts">
 import { computed, inject, onMounted, onUnmounted } from 'vue'
-import { debounce } from 'lodash'
+import debounceFn from 'lodash/debounce'
 import {
   EditOutlined,
   EyeOutlined,
@@ -47,22 +47,22 @@ import type { MxButtonProps, MxButtonEmits, IconType } from './buttonTypes'
  * 基于 Ant Design Vue Button 的二次封装
  * 完全兼容 ant-design-vue Button 组件的所有属性和事件
  * 支持权限控制、预设图标、防抖等
- * 
+ *
  * 使用 Provide/Inject 注入权限检查函数
  * 在应用入口配置：
  * ```ts
  * const checkPermission = (permission: string | string[]) => boolean
  * app.provide('checkPermission', checkPermission)
  * ```
- * 
+ *
  * @example
  * ```vue
  * <!-- 基础用法 -->
  * <mx-button @click="handleClick">按钮</mx-button>
- * 
+ *
  * <!-- 预设图标 -->
  * <mx-button icon-type="edit" @click="handleEdit">编辑</mx-button>
- * 
+ *
  * <!-- 防抖 -->
  * <mx-button icon-type="copy" :debounce="300" @click="handleCopy">复制</mx-button>
  * ```
@@ -99,6 +99,18 @@ interface Props {
 
 // Props 定义
 const props = withDefaults(defineProps<Props>(), {
+  type: 'default',
+  size: 'middle',
+  loading: false,
+  disabled: false,
+  block: false,
+  danger: false,
+  ghost: false,
+  shape: 'default',
+  htmlType: 'button',
+  icon: undefined,
+  href: undefined,
+  target: undefined,
   customClass: '',
   permission: undefined,
   iconType: undefined,
@@ -112,7 +124,10 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<MxButtonEmits>()
 
 // 注入权限检查函数（可选）
-const checkPermission = inject<(permission: string | string[]) => boolean>('checkPermission', () => true)
+const checkPermission = inject<(permission: string | string[]) => boolean>(
+  'checkPermission',
+  () => true
+)
 
 /** 默认文案映射 */
 const defaultTextMap: Record<IconType, string> = {
@@ -145,7 +160,7 @@ const displayText = computed(() => {
 const hasPermission = computed(() => {
   // 如果没有传入权限，默认显示
   if (!props.permission) return true
-  
+
   // 使用注入的权限检查函数
   return checkPermission(props.permission)
 })
@@ -164,20 +179,27 @@ const isLoading = computed(() => {
 /** 是否显示图标 */
 const showIcon = computed(() => {
   const result = !props.hideIcon && !isLoading.value && !!props.iconType
-  console.log('[MxButton] iconType:', props.iconType, 'hideIcon:', props.hideIcon, 'isLoading:', isLoading.value, 'showIcon:', result)
+
   return result
 })
 
 /** 按钮属性（排除自定义属性） */
 const buttonProps = computed(() => {
-  const { customClass, permission, iconType, hideIcon, debounce, defaultText, loadingText, ...rest } = props
+  const rest = { ...props } as Record<string, any>
+  delete rest.customClass
+  delete rest.permission
+  delete rest.iconType
+  delete rest.hideIcon
+  delete rest.debounce
+  delete rest.defaultText
+  delete rest.loadingText
   return rest
 })
 
 /** 防抖函数 */
 const debouncedClick = computed(() => {
   if (props.debounce > 0) {
-    return debounce((event: MouseEvent) => {
+    return debounceFn((event: MouseEvent) => {
       emit('click', event)
     }, props.debounce)
   }
@@ -188,14 +210,6 @@ const debouncedClick = computed(() => {
 const handleClick = (event: MouseEvent) => {
   debouncedClick.value(event)
 }
-
-onMounted(() => {
-  console.log('[MxButton] Component mounted, props:', {
-    iconType: props.iconType,
-    hideIcon: props.hideIcon,
-    loading: props.loading
-  })
-})
 
 onUnmounted(() => {
   // 取消防抖
@@ -214,7 +228,6 @@ export type MxButtonPropsWithPermission = MxButtonProps & {
 }
 </script>
 
-<style scoped lang="less">
+<style scoped lang="scss">
 // 可在此添加自定义样式
 </style>
-

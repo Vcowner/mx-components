@@ -232,6 +232,6 @@ app.use(MyVueComponents)  // 再安装封装组件
 
 ## 下一步
 
-- 查看 [组件文档](/components/button) 了解更多组件
+- 查看 [组件文档](/components/button/) 了解更多组件
 - 学习 [自定义主题](#自定义主题) 定制样式
 

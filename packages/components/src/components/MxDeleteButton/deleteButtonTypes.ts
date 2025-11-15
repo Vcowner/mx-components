@@ -27,4 +27,3 @@ export interface MxDeleteButtonProps {
   /** 是否隐藏图标 */
   hideIcon?: boolean
 }
-

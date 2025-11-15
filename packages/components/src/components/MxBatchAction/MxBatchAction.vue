@@ -14,7 +14,6 @@
     :hide-icon="props.hideIcon || !!props.iconType"
     @delete="handleDelete"
   >
-  
     <slot :selected-items="props.selectedItems">
       {{ renderLabel() }}
     </slot>
@@ -68,7 +67,10 @@ export type BatchActionProps = {
   loading?: boolean
   /** 是否在无选择时禁用（默认 true） */
   disabledWhenEmpty?: boolean
-} & Pick<MxDeleteButtonProps, 'confirm' | 'confirmType' | 'confirmTitle' | 'okText' | 'cancelText' | 'hideIcon'>
+} & Pick<
+  MxDeleteButtonProps,
+  'confirm' | 'confirmType' | 'confirmTitle' | 'okText' | 'cancelText' | 'hideIcon'
+>
 
 interface Props extends BatchActionProps {}
 
@@ -119,7 +121,7 @@ function handleClick(event?: MouseEvent) {
   if (event) {
     event.stopPropagation()
   }
-  
+
   // 只 emit 事件，不使用 onClick prop（避免与 @click 重复触发）
   // 如果需要回调，请使用 @click 事件监听器
   emit('click', props.selectedItems)
@@ -130,8 +132,3 @@ function handleDelete() {
   emit('click', props.selectedItems)
 }
 </script>
-
-<style scoped lang="less">
-</style>
-
-

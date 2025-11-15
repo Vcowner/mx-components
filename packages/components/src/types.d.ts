@@ -17,5 +17,7 @@ declare module '@ant-design/icons-vue' {
   export const ExclamationCircleOutlined: DefineComponent
   export const UploadOutlined: DefineComponent
   export const LoadingOutlined: DefineComponent
+  export const CaretDownOutlined: DefineComponent
+  export const CaretUpOutlined: DefineComponent
 }
 

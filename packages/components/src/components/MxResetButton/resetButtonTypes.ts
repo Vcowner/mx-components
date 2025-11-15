@@ -33,5 +33,3 @@ export interface MxResetButtonProps extends ButtonProps {
 export type MxResetButtonEmits = {
   reset: []
 }
-
-

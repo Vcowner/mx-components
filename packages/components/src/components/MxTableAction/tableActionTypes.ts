@@ -12,4 +12,3 @@ export interface MxTableActionProps {
   size?: 'large' | 'middle' | 'small'
   maxCount?: number
 }
-

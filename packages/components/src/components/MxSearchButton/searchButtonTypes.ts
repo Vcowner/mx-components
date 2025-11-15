@@ -21,4 +21,3 @@ export interface MxSearchButtonProps extends ButtonProps {
 export type MxSearchButtonEmits = {
   search: []
 }
-

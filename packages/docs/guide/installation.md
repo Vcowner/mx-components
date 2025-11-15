@@ -94,5 +94,5 @@ src/
 ## 下一步
 
 - 阅读 [快速开始](/guide/quickstart) 开始使用
-- 查看 [组件列表](/components/button) 浏览所有组件
+- 查看 [组件列表](/components/button/) 浏览所有组件
 

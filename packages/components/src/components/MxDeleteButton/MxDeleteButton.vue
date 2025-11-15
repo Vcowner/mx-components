@@ -10,7 +10,7 @@
   >
     <template #icon>
       <slot name="popconfirmIcon">
-        <ExclamationCircleOutlined style="color: #ff4d4f;" />
+        <ExclamationCircleOutlined style="color: #ff4d4f" />
       </slot>
     </template>
     <mx-button
@@ -19,16 +19,16 @@
       :disabled="disabled || loading"
       :loading="loading"
       :danger="true"
-      :customClass="customClass"
+      :custom-class="customClass"
       :permission="permission"
     >
-      <template #icon v-if="!hideIcon && !loading">
+      <template v-if="!hideIcon && !loading" #icon>
         <DeleteOutlined />
       </template>
       <slot>删除</slot>
     </mx-button>
   </a-popconfirm>
-  
+
   <!-- 模态框模式或无确认 -->
   <mx-button
     v-else
@@ -37,11 +37,11 @@
     :disabled="disabled || loading"
     :loading="loading"
     :danger="true"
-    :customClass="customClass"
+    :custom-class="customClass"
     :permission="permission"
     @click="handleClick"
   >
-    <template #icon v-if="!hideIcon && !loading">
+    <template v-if="!hideIcon && !loading" #icon>
       <DeleteOutlined />
     </template>
     <slot>删除</slot>
@@ -59,13 +59,13 @@ import type { MxDeleteButtonProps } from './deleteButtonTypes'
  * 删除按钮组件
  * 专用于删除操作，自动添加删除图标和危险样式
  * 支持权限控制、加载状态、确认对话框
- * 
+ *
  * @example
  * <mx-delete-button @delete="handleDelete" confirm="确定要删除吗？" />
- * 
+ *
  * @example
  * <mx-delete-button @delete="handleDelete" confirm-type="popconfirm" />
- * 
+ *
  * @example
  * <mx-delete-button permission="delete" @delete="handleDelete" />
  */
@@ -97,38 +97,45 @@ const props = withDefaults(defineProps<Props>(), {
 const modalInstance = ref<{ update: (config: any) => void } | null>(null)
 
 // 监听 loading 状态变化，更新 Modal 确认按钮的 loading 状态
-watch(() => props.loading, (newLoading) => {
-  if (modalInstance.value && typeof modalInstance.value.update === 'function') {
-    modalInstance.value.update({
-      okButtonProps: {
-        loading: newLoading
-      }
-    })
+watch(
+  () => props.loading,
+  newLoading => {
+    if (modalInstance.value && typeof modalInstance.value.update === 'function') {
+      modalInstance.value.update({
+        okButtonProps: {
+          loading: newLoading
+        }
+      })
+    }
   }
-})
+)
 
 /** 等待 loading 完成的 Promise */
 const waitLoadingComplete = (): Promise<void> => {
-  return new Promise((resolve) => {
-    // 如果已经是 loading 状态，等待变为 false
-    if (props.loading) {
-      const stopWatcher = watch(() => props.loading, (newLoading) => {
-        if (!newLoading) {
+  return new Promise(resolve => {
+    let hasControlledLoading = false
+
+    const stopWatcher = watch(
+      () => props.loading,
+      newLoading => {
+        if (newLoading) {
+          hasControlledLoading = true
+        } else if (hasControlledLoading) {
           stopWatcher()
           resolve()
         }
-      }, { immediate: true })
-    } else {
-      // 如果还不是 loading，等待变为 true 再变为 false
-      let hasStartedLoading = false
-      const stopWatcher = watch(() => props.loading, (newLoading) => {
-        if (newLoading && !hasStartedLoading) {
-          hasStartedLoading = true
-        } else if (!newLoading && hasStartedLoading) {
+      },
+      { immediate: true }
+    )
+
+    // 如果外部没有控制 loading（始终为 false），在微任务中自动 resolve
+    if (!props.loading) {
+      queueMicrotask(() => {
+        if (!hasControlledLoading) {
           stopWatcher()
           resolve()
         }
-      }, { immediate: true })
+      })
     }
   })
 }
@@ -171,6 +178,4 @@ const handleConfirm = () => {
 }
 </script>
 
-<style scoped lang="less">
-</style>
-
+<style scoped lang="scss"></style>

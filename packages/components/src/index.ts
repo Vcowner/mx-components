@@ -1,6 +1,5 @@
 import type { App } from 'vue'
 import MxButton from './components/MxButton/MxButton.vue'
-import MxInput from './components/MxInput/MxInput.vue'
 import MxDeleteButton from './components/MxDeleteButton/MxDeleteButton.vue'
 import MxImportButton from './components/MxImportButton/MxImportButton.vue'
 import MxSearchButton from './components/MxSearchButton/MxSearchButton.vue'
@@ -16,7 +15,6 @@ import './style/index.css'
 // 组件列表
 const components = [
   { name: 'MxButton', component: MxButton },
-  { name: 'MxInput', component: MxInput },
   { name: 'MxDeleteButton', component: MxDeleteButton },
   { name: 'MxImportButton', component: MxImportButton },
   { name: 'MxSearchButton', component: MxSearchButton },
@@ -38,7 +36,6 @@ const install = (app: App) => {
 export default {
   install,
   MxButton,
-  MxInput,
   MxDeleteButton,
   MxImportButton,
   MxSearchButton,
@@ -50,11 +47,10 @@ export default {
 }
 
 // 按需导出组件
-export { MxButton, MxInput, MxDeleteButton, MxImportButton, MxSearchButton, MxResetButton, MxSubmitButton, MxButtonGroup, MxTableAction, MxBatchAction }
+export { MxButton, MxDeleteButton, MxImportButton, MxSearchButton, MxResetButton, MxSubmitButton, MxButtonGroup, MxTableAction, MxBatchAction }
 
 // 为了兼容性，导出的别名
 export const Button = MxButton
-export const Input = MxInput
 export const DeleteButton = MxDeleteButton
 export const ImportButton = MxImportButton
 export const SearchButton = MxSearchButton
@@ -66,7 +62,6 @@ export const BatchAction = MxBatchAction
 
 // 导出组件类型，供 IDE 识别
 export type { MxButtonProps, MxButtonEmits, IconType } from './components/MxButton/buttonTypes'
-export type { MxInputProps, MxInputEmits } from './components/MxInput/inputTypes'
 export type { MxDeleteButtonProps } from './components/MxDeleteButton/deleteButtonTypes'
 export type { MxImportButtonProps } from './components/MxImportButton/importButtonTypes'
 export type { MxSearchButtonProps, MxSearchButtonEmits } from './components/MxSearchButton/searchButtonTypes'

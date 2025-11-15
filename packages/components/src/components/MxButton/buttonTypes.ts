@@ -5,16 +5,15 @@ import type { ButtonProps } from 'ant-design-vue'
  * 注意：已有专门业务组件的类型不在此列（如 search、reset、submit、delete）
  */
 export type IconType =
-  | 'edit'      // 编辑
-  | 'view'      // 查看
-  | 'copy'      // 复制
-  | 'add'       // 新增
-  | 'refresh'   // 刷新
-  | 'save'      // 保存
-  | 'cancel'    // 取消
-  | 'print'     // 打印
-  | 'export'    // 导出
-
+  | 'edit' // 编辑
+  | 'view' // 查看
+  | 'copy' // 复制
+  | 'add' // 新增
+  | 'refresh' // 刷新
+  | 'save' // 保存
+  | 'cancel' // 取消
+  | 'print' // 打印
+  | 'export' // 导出
 
 /**
  * MxButton 组件属性
@@ -60,4 +59,3 @@ export type { ButtonProps }
 export type MxButtonEmits = {
   click: [event: MouseEvent]
 }
-

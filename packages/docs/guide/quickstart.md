@@ -63,6 +63,6 @@ const handleClick = () => {
 ## 下一步
 
 - 查看 [安装](/guide/installation) 获取更多配置选项
-- 浏览 [组件](/components/button) 了解所有可用组件
+- 浏览 [组件](/components/button/) 了解所有可用组件
 - 查看 [工具函数](/utils/overview) 获取实用工具
 

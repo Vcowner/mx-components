@@ -1,11 +1,16 @@
 <template>
-  <div :class="['mx-import-button-wrapper', { 'mx-import-button-wrapper--drag': uploadType === 'drag' }]">
+  <div
+    :class="[
+      'mx-import-button-wrapper',
+      { 'mx-import-button-wrapper--drag': uploadType === 'drag' }
+    ]"
+  >
     <!-- 下载模板按钮 -->
     <mx-button
       v-if="downloadTemplate"
       :type="type"
       :size="size"
-      :customClass="customClass"
+      :custom-class="customClass"
       :permission="permission"
       class="mx-import-button-template-btn"
       @click="handleDownloadTemplate"
@@ -23,7 +28,6 @@
       :accept="accept"
       :multiple="multiple"
       :file-list="props.fileList"
-      @update:file-list="(val: UploadProps['fileList']) => emit('update:fileList', val)"
       :list-type="listType"
       :show-upload-list="normalizedShowUploadList"
       :max-count="maxCount"
@@ -32,6 +36,7 @@
       :before-upload="handleBeforeUpload"
       :preview-file="handlePreviewFile"
       :download="handleDownload"
+      @update:file-list="(val: UploadProps['fileList']) => emit('update:fileList', val)"
       @change="handleChange"
       @remove="handleRemove"
     >
@@ -51,11 +56,11 @@
         :size="size"
         :disabled="disabled || loading"
         :loading="loading"
-        :customClass="customClass"
+        :custom-class="customClass"
         :permission="permission"
         :debounce="debounce"
       >
-        <template #icon v-if="!hideIcon && !loading">
+        <template v-if="!hideIcon && !loading" #icon>
           <UploadOutlined />
         </template>
         <slot>导入</slot>
@@ -69,7 +74,6 @@
       :accept="accept"
       :multiple="multiple"
       :file-list="props.fileList"
-      @update:file-list="(val: UploadProps['fileList']) => emit('update:fileList', val)"
       :list-type="props.listType"
       :show-upload-list="normalizedShowUploadList"
       :max-count="maxCount"
@@ -80,6 +84,7 @@
       :download="handleDownload"
       :disabled="disabled || loading"
       :class="customClass"
+      @update:file-list="(val: UploadProps['fileList']) => emit('update:fileList', val)"
       @change="handleChange"
       @remove="handleRemove"
     >
@@ -110,21 +115,23 @@ import type { MxImportButtonProps, UploadProgressEvent } from './importButtonTyp
  * 按优先级检查多个可能的 URL 来源
  */
 const getFileUrl = (file: UploadFile | any): string | undefined => {
-  return file?.url || 
-         file?.thumbUrl || 
-         file?.response?.url || 
-         file?.response?.thumbUrl || 
-         file?.response?.data?.url
+  return (
+    file?.url ||
+    file?.thumbUrl ||
+    file?.response?.url ||
+    file?.response?.thumbUrl ||
+    file?.response?.data?.url
+  )
 }
 
 /**
  * 导入按钮组件
  * 专用于文件上传/导入操作，支持点击上传和拖拽上传两种模式
- * 
+ *
  * @example
  * <!-- 点击上传 -->
  * <mx-import-button upload-type="button" @change="handleImport" />
- * 
+ *
  * @example
  * <!-- 拖拽上传 -->
  * <mx-import-button upload-type="drag" @change="handleImport" />
@@ -197,27 +204,27 @@ const normalizedShowUploadList = computed(() => {
 // 计算上传组件的属性（排除自定义属性）
 const uploadProps = computed(() => {
   const {
-    uploadType,
-    type,
-    size,
-    customClass,
-    permission,
-    hideIcon,
-    accept,
-    multiple,
-    fileList,
-    showUploadList,
-    listType,
-    maxCount,
-    maxSize,
-    action,
-    customRequest,
-    beforeUpload,
-    remove,
-    preview,
-    download,
-    debounce,
-    downloadTemplate,
+    uploadType: _uploadType,
+    type: _type,
+    size: _size,
+    customClass: _customClass,
+    permission: _permission,
+    hideIcon: _hideIcon,
+    accept: _accept,
+    multiple: _multiple,
+    fileList: _fileList,
+    showUploadList: _showUploadList,
+    listType: _listType,
+    maxCount: _maxCount,
+    maxSize: _maxSize,
+    action: _action,
+    customRequest: _customRequest,
+    beforeUpload: _beforeUpload,
+    remove: _remove,
+    preview: _preview,
+    download: _download,
+    debounce: _debounce,
+    downloadTemplate: _downloadTemplate,
     ...rest
   } = props
   return rest
@@ -229,10 +236,10 @@ const validateFileType = (file: File, accept?: string): boolean => {
 
   const fileName = file.name || ''
   const fileType = file.type || ''
-  
+
   // 将 accept 字符串分割成数组
   const acceptTypes = accept.split(',').map(type => type.trim())
-  
+
   // 检查文件是否匹配任一 accept 类型
   for (const acceptType of acceptTypes) {
     // 处理扩展名匹配（如 .xlsx, .xls）
@@ -255,7 +262,7 @@ const validateFileType = (file: File, accept?: string): boolean => {
       return true
     }
   }
-  
+
   return false
 }
 
@@ -325,7 +332,7 @@ const handlePreviewFile = async (file: UploadFile) => {
   if (!fileUrl) {
     return false
   }
-  
+
   if (props.preview) {
     // 如果用户提供了 preview 回调，调用它
     // preview 可能返回一个 Promise，用于自定义预览 URL
@@ -371,7 +378,6 @@ const handleChange = (info: UploadChangeParam) => {
   emit('update:fileList', info.fileList)
 
   emit('change', info)
-  emit('import', info.fileList)
 
   // 触发上传进度事件（当文件正在上传时）
   // 优先使用 file.percent，如果没有则使用 event.percent
@@ -389,6 +395,8 @@ const handleChange = (info: UploadChangeParam) => {
   // 触发成功/失败事件
   if (info.file.status === 'done') {
     emit('success', info)
+    // 只在文件上传成功时触发 import 事件，避免重复触发
+    emit('import', info.fileList)
   } else if (info.file.status === 'error') {
     const error = new Error(info.file.error?.message || '上传失败')
     emit('error', error, info)
@@ -400,7 +408,7 @@ const handleDownloadTemplate = () => {
   if (!props.downloadTemplate) return
 
   const { url, filename } = props.downloadTemplate
-  
+
   // 验证 URL 是否有效
   if (!url) {
     message.error('下载模板地址无效')
@@ -422,75 +430,75 @@ const handleDownloadTemplate = () => {
 }
 </script>
 
-<style scoped lang="less">
+<style scoped lang="scss">
 .mx-import-button-wrapper {
   display: inline-block;
-  
+
   // 拖拽上传模式时，wrapper 应该是块级元素
   &--drag {
     display: block;
   }
-  
+
   // 下载模板按钮样式
   .mx-import-button-template-btn {
     margin-right: 8px;
   }
-  
+
   // 文件列表删除按钮设置为红色（Ant Design 默认就是红色，这里确保样式生效）
   :deep(.ant-upload-list-item) {
     // 去掉文件名的下划线
     .ant-upload-list-item-name {
       text-decoration: none !important;
     }
-    
+
     .ant-upload-list-item-actions {
       .anticon-delete {
         color: #ff4d4f !important;
-        
+
         &:hover {
           color: #ff7875 !important;
         }
       }
-      
+
       .anticon-download {
         color: #1890ff !important;
-        
+
         &:hover {
           color: #40a9ff !important;
         }
       }
     }
-    
+
     // 上传成功状态 - 绿色
     &.ant-upload-list-item-done {
       .ant-upload-list-item-name {
         color: #52c41a !important;
       }
-      
+
       .ant-upload-list-item-icon,
       .ant-upload-text-icon {
         color: #52c41a !important;
       }
     }
-    
+
     // 上传中状态 - 蓝色
     &.ant-upload-list-item-uploading {
       .ant-upload-list-item-name {
         color: #1890ff !important;
       }
-      
+
       .ant-upload-list-item-icon,
       .ant-upload-text-icon {
         color: #1890ff !important;
       }
     }
-    
+
     // 上传失败状态 - 红色
     &.ant-upload-list-item-error {
       .ant-upload-list-item-name {
         color: #ff4d4f !important;
       }
-      
+
       .ant-upload-list-item-icon,
       .ant-upload-text-icon {
         color: #ff4d4f !important;
@@ -499,5 +507,3 @@ const handleDownloadTemplate = () => {
   }
 }
 </style>
-
-

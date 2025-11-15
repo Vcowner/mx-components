@@ -267,6 +267,10 @@ const getActions = (record) => {
 | permission | 权限标识 | `string \| string[]` | - |
 | onClick | 点击回调 | `(action: TableActionItem) => void` | - |
 | slot | 插槽名称 | `string` | - |
+| actionType | 操作类型：`'delete'`（删除操作）或 `'custom'`（自定义组件） | `'delete' \| 'custom'` | - |
+| component | 自定义组件（当 actionType === 'custom' 时使用） | `Component` | - |
+| componentProps | 传递给自定义组件的属性（当 actionType === 'custom' 时使用） | `Record<string, any>` | - |
+| deleteProps | 删除按钮的配置（仅当 actionType === 'delete' 时有效） | `Partial<MxDeleteButtonProps>` | - |
 | 其他按钮属性 | 可传入任意 Button 支持的属性，如 `danger`、`ghost`、`loading` 等 | `any` | - |
 
 ### TableAction Events
@@ -301,6 +305,48 @@ import { EditOutlined } from '@ant-design/icons-vue'
 
 const actions = [
   { label: '编辑', icon: EditOutlined }
+]
+```
+
+### 删除操作
+
+使用 `actionType: 'delete'` 可以启用删除操作，会自动使用 `MxDeleteButton`，具有删除图标、危险样式和确认对话框：
+
+```vue
+const actions = [
+  {
+    label: '删除',
+    actionType: 'delete',
+    deleteProps: {
+      confirm: '确定要删除吗？',
+      confirmType: 'modal'
+    },
+    onClick: (action) => {
+      console.log('删除操作')
+    }
+  }
+]
+```
+
+### 自定义组件
+
+使用 `actionType: 'custom'` 可以自定义操作按钮组件：
+
+```vue
+import MyCustomButton from './MyCustomButton.vue'
+
+const actions = [
+  {
+    label: '自定义操作',
+    actionType: 'custom',
+    component: MyCustomButton,
+    componentProps: {
+      customProp: 'value'
+    },
+    onClick: (action) => {
+      console.log('自定义操作')
+    }
+  }
 ]
 ```
 

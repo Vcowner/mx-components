@@ -5,10 +5,10 @@
     :disabled="disabled || loading"
     :loading="loading"
     :permission="permission"
-    :customClass="customClass"
+    :custom-class="customClass"
     @click="handleSubmit"
   >
-    <template #icon v-if="!hideIcon && !loading">
+    <template v-if="!hideIcon && !loading" #icon>
       <CheckOutlined />
     </template>
     <slot>{{ loading && submittingText ? submittingText : defaultText }}</slot>
@@ -18,7 +18,7 @@
 <script setup lang="ts">
 import { onUnmounted, computed } from 'vue'
 import { CheckOutlined } from '@ant-design/icons-vue'
-import { debounce } from 'lodash'
+import debounceFn from 'lodash/debounce'
 import MxButton from '../MxButton/MxButton.vue'
 
 defineOptions({ name: 'MxSubmitButton' })
@@ -53,7 +53,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const debouncedSubmit = computed(() => {
   if (props.debounce > 0) {
-    return debounce(() => {
+    return debounceFn(() => {
       emit('submit')
     }, props.debounce)
   }
@@ -72,7 +72,4 @@ onUnmounted(() => {
 export type { Props as MxSubmitButtonProps }
 </script>
 
-<style scoped lang="less">
-</style>
-
-
+<style scoped lang="scss"></style>

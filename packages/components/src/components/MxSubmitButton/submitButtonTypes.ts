@@ -14,5 +14,3 @@ export interface MxSubmitButtonProps {
 export interface MxSubmitButtonEmits {
   submit: []
 }
-
-

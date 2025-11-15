@@ -1,3 +1,10 @@
+<!--
+ * @Author: liaokt
+ * @Description: 
+ * @Date: 2025-11-12 15:06:55
+ * @LastEditors: liaokt
+ * @LastEditTime: 2025-11-12 15:40:22
+-->
 <template>
   <div :class="buttonGroupClass" :style="groupStyle">
     <slot />
@@ -49,7 +56,7 @@ const groupStyle = computed(() => {
 export type { Props as MxButtonGroupProps }
 </script>
 
-<style scoped lang="less">
+<style scoped lang="scss">
 .mx-button-group {
   display: flex;
 
@@ -90,4 +97,3 @@ export type { Props as MxButtonGroupProps }
   }
 }
 </style>
-

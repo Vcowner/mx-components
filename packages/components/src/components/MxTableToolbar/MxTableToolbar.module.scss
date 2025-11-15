@@ -1,0 +1,198 @@
+/**
+ * CustomTableToolbar 组件模块化样式
+ * 使用 SASS 语法
+ */
+
+// ==================== SASS 变量 ====================
+$toolbar-bg-color: #fafafa;
+$toolbar-border-radius: 8px;
+$toolbar-padding: 16px;
+$toolbar-gap: 12px;
+$toolbar-margin: 12px;
+
+$advanced-bg-color: #f9f9f9;
+$advanced-border-radius: 6px;
+$advanced-padding: 12px;
+$advanced-gap: 30px;
+
+$button-gap: 12px;
+$button-border-radius: 6px;
+
+$form-item-margin: 16px;
+$form-label-color: #666;
+$form-label-size: 14px;
+
+// ==================== SASS 混入 ====================
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+}
+
+@mixin flex-wrap {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+@mixin flex-between {
+  display: flex;
+  justify-content: space-between;
+}
+
+@mixin button-style {
+  border-radius: $button-border-radius;
+  font-weight: 500;
+}
+
+// ==================== 组件样式 ====================
+
+.table-toolbar {
+  width: 100%;
+  border-radius: $toolbar-border-radius;
+}
+
+// 基础搜索行样式
+.toolbar-search-row {
+  margin-bottom: 8px;
+}
+
+// 搜索表单样式
+.search-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+
+  // 移除表单的默认样式
+  :deep(.ant-form) {
+    display: contents;
+  }
+}
+
+// 搜索表单项样式 - 紧凑布局
+.search-form-item {
+  margin-bottom: 0 !important;
+  margin-right: 0 !important;
+  display: inline-flex;
+  align-items: center;
+
+  // 移除表单项的默认间距和样式
+  :deep(.ant-form-item-control) {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+  }
+
+  :deep(.ant-form-item-control-input) {
+    min-height: auto;
+    width: 100%;
+  }
+
+  :deep(.ant-form-item-control-input-content) {
+    line-height: 1;
+    display: flex;
+    align-items: center;
+  }
+
+  // 移除表单项的错误提示区域
+  :deep(.ant-form-item-explain-error) {
+    display: none;
+  }
+}
+
+// 高级搜索区域样式
+.toolbar-advanced-row {
+  margin-bottom: 12px;
+  margin-top: 12px;
+  background-color: #f9fafb;
+  padding: 12px;
+  border-radius: 6px;
+}
+
+// 高级搜索表单样式
+.advanced-form {
+  margin: 0;
+}
+
+// 高级搜索行样式
+.advanced-row {
+  margin-left: 16px;
+  margin-right: 16px;
+}
+
+// 高级搜索表单项样式
+.advanced-form-item {
+  margin-bottom: 16px;
+  margin-top: 16px;
+
+  // 深度选择器样式
+  :deep(.ant-form-item-label) {
+    padding-bottom: 0;
+    text-align: right;
+  }
+
+  :deep(.ant-form-item-label > label) {
+    font-size: 14px;
+    color: #374151;
+    height: auto;
+  }
+}
+
+// 操作按钮行样式
+.toolbar-action-row {
+  @include flex-wrap;
+  @include flex-center;
+  @include flex-between;
+  gap: $button-gap;
+  margin-bottom: 12px;
+  margin-top: 8px;
+
+  // 按钮组内部间隔
+  > div {
+    @include flex-center;
+    gap: $button-gap;
+  }
+}
+
+// 按钮样式增强
+.toolbar-action-row {
+  :deep(.ant-btn) {
+    @include button-style;
+  }
+}
+
+// ==================== 响应式样式 ====================
+@media (max-width: 768px) {
+  .toolbar-search-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .toolbar-action-row {
+    flex-direction: column;
+    align-items: stretch;
+
+    > div {
+      justify-content: center;
+    }
+  }
+
+  .advanced-form {
+    flex-direction: column;
+    gap: $toolbar-gap;
+  }
+}
+
+@media (max-width: 480px) {
+  .table-toolbar {
+    padding: $toolbar-gap;
+  }
+
+  .toolbar-search-row {
+    gap: 8px;
+  }
+
+  .toolbar-action-row {
+    gap: 8px;
+  }
+}
