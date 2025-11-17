@@ -1,10 +1,12 @@
-import { defineConfig, withBase } from "vitepress";
+import { defineConfig } from "vitepress";
 import { resolve } from "path";
 import vueJsx from "@vitejs/plugin-vue-jsx";
 
 const base =
   process.env.DOCS_BASE ||
   (process.env.GITHUB_REPOSITORY ? `/${process.env.GITHUB_REPOSITORY.split("/")[1]}/` : "/");
+
+const withBasePath = (path: string) => `${base.replace(/\/$/, "")}${path}`;
 
 export default defineConfig({
   title: "MX UI",
@@ -16,8 +18,8 @@ export default defineConfig({
   base,
 
   head: [
-    ["link", { rel: "icon", href: withBase("/favicon.ico") }],
-    ["link", { rel: "stylesheet", href: withBase("/custom.css") }],
+    ["link", { rel: "icon", href: withBasePath("/favicon.ico") }],
+    ["link", { rel: "stylesheet", href: withBasePath("/custom.css") }],
   ],
 
   // Vite 配置
