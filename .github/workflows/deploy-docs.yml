@@ -80,8 +80,8 @@ jobs:
           username: ${{ env.SERVER_USER || 'root' }}
           port: ${{ env.SERVER_PORT || '22' }}
           password: ${{ env.SERVER_PASSWORD }}
-          source: "packages/docs/.vitepress/dist/*"
-          target: "/www/wwwroot/packages/docs/.vitepress/dist"
+          source: "packages/docs/.vitepress/dist"
+          target: "/www/wwwroot/packages/docs/.vitepress"
 
       - name: 配置 Pages
         uses: actions/configure-pages@v4
