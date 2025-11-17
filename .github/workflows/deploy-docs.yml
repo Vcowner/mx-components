@@ -32,39 +32,39 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: 检出代码
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # 获取完整历史记录
 
-      - name: Setup pnpm
+      - name: 配置 pnpm
         uses: pnpm/action-setup@v2
         with:
           version: 8
 
-      - name: Setup Node.js
+      - name: 配置 Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
           cache: 'pnpm'
 
-      - name: Install dependencies
+      - name: 安装依赖
         run: pnpm install --frozen-lockfile
 
-      - name: Build docs only
+      - name: 构建文档
         run: pnpm build:docs
         # 只构建文档，不构建其他包
 
-      - name: Setup Pages
+      - name: 配置 Pages
         uses: actions/configure-pages@v4
 
-      - name: Upload artifact
+      - name: 上传构建产物
         uses: actions/upload-pages-artifact@v3
         with:
           path: packages/docs/.vitepress/dist
         # 只上传文档构建产物
 
-      - name: Deploy to GitHub Pages
+      - name: 部署
         id: deployment
         uses: actions/deploy-pages@v4
 
