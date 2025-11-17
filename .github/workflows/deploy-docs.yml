@@ -40,7 +40,7 @@ jobs:
       - name: 配置 pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: 9
 
       - name: 配置 Node.js
         uses: actions/setup-node@v4
