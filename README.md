@@ -62,15 +62,29 @@ pnpm build:docs
 
 ### 部署文档
 
-文档使用 GitHub Pages 部署，详细说明请查看 [DEPLOYMENT.md](./DEPLOYMENT.md)
+文档支持两种部署方式：
+
+#### 方式一：GitHub Pages（推荐）
+
+详细说明请查看 [DEPLOYMENT.md](./DEPLOYMENT.md)
 
 **快速部署**：
 
 1. 在 GitHub 仓库设置中启用 Pages（Settings → Pages → Source 选择 "GitHub Actions"）
 2. 推送代码到 main 分支，GitHub Actions 会自动构建并部署
-3. 部署完成后，访问 `https://username.github.io/repo-name` 查看文档
+3. 部署完成后，访问 `https://vcowner.github.io/mt-components/` 查看文档
 
-**注意**：如果仓库名不是 `username.github.io`，需要在 `packages/docs/.vitepress/config.ts` 中设置 `base` 路径。
+#### 方式二：部署到自己的服务器
+
+详细说明请查看 [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+**快速部署**：
+
+1. 修改 `base` 为 `/`（根路径）
+2. 构建文档：`pnpm build:docs`
+3. 上传到服务器：使用 `scripts/deploy-to-server.sh` 或手动上传
+4. 配置 Nginx（参考 `nginx-server.conf`）
+5. 配置域名 DNS 解析
 
 ## 📦 包说明
 
