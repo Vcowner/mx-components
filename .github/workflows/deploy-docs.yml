@@ -27,6 +27,11 @@ concurrency:
 
 jobs:
   build-and-deploy:
+    env:
+      SERVER_HOST: ${{ secrets.SERVER_HOST }}
+      SERVER_USER: ${{ secrets.SERVER_USER }}
+      SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+      SERVER_PORT: ${{ secrets.SERVER_PORT }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -54,6 +59,29 @@ jobs:
       - name: 构建文档
         run: pnpm build:docs
         # 只构建文档，不构建其他包
+
+      - name: 清理服务器旧版本
+        if: ${{ success() && env.SERVER_HOST }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ env.SERVER_HOST }}
+          username: ${{ env.SERVER_USER || 'root' }}
+          port: ${{ env.SERVER_PORT || '22' }}
+          password: ${{ env.SERVER_PASSWORD }}
+          script: |
+            mkdir -p /www/wwwroot/dist
+            rm -rf /www/wwwroot/dist/*
+
+      - name: 上传静态文件到服务器
+        if: ${{ success() && env.SERVER_HOST }}
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.SERVER_HOST }}
+          username: ${{ env.SERVER_USER || 'root' }}
+          port: ${{ env.SERVER_PORT || '22' }}
+          password: ${{ env.SERVER_PASSWORD }}
+          source: "packages/docs/.vitepress/dist/*"
+          target: "/www/wwwroot/dist"
 
       - name: 配置 Pages
         uses: actions/configure-pages@v4
