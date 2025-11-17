@@ -69,8 +69,8 @@ jobs:
           port: ${{ env.SERVER_PORT || '22' }}
           password: ${{ env.SERVER_PASSWORD }}
           script: |
-            mkdir -p /www/wwwroot/dist
-            rm -rf /www/wwwroot/dist/*
+            mkdir -p /www/wwwroot/packages/docs/.vitepress/dist
+            rm -rf /www/wwwroot/packages/docs/.vitepress/dist/*
 
       - name: 上传静态文件到服务器
         if: ${{ success() && env.SERVER_HOST }}
@@ -81,7 +81,7 @@ jobs:
           port: ${{ env.SERVER_PORT || '22' }}
           password: ${{ env.SERVER_PASSWORD }}
           source: "packages/docs/.vitepress/dist/*"
-          target: "/www/wwwroot/dist"
+          target: "/www/wwwroot/packages/docs/.vitepress/dist"
 
       - name: 配置 Pages
         uses: actions/configure-pages@v4
