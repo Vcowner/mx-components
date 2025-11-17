@@ -2,6 +2,10 @@ import { defineConfig } from "vitepress";
 import { resolve } from "path";
 import vueJsx from "@vitejs/plugin-vue-jsx";
 
+const base =
+  process.env.DOCS_BASE ||
+  (process.env.GITHUB_REPOSITORY ? `/${process.env.GITHUB_REPOSITORY.split("/")[1]}/` : "/");
+
 export default defineConfig({
   title: "MX UI",
   description: "基于 Ant Design Vue 的二次封装组件库",
@@ -9,7 +13,7 @@ export default defineConfig({
   // 部署路径配置
   // 如果部署在服务器根路径，使用 "/"
   // 如果部署在 GitHub Pages 子路径，使用 "/mt-components/"
-  base: "/",
+  base,
 
   head: [
     ["link", { rel: "icon", href: "/favicon.ico" }],
