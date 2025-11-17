@@ -81,6 +81,7 @@ jobs:
           port: ${{ env.SERVER_PORT || '22' }}
           password: ${{ env.SERVER_PASSWORD }}
           source: "packages/docs/.vitepress/dist"
+          strip_components: 3
           target: "/www/wwwroot/packages/docs/.vitepress"
 
       - name: 配置 Pages
