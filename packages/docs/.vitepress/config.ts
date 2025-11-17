@@ -1,4 +1,4 @@
-import { defineConfig } from "vitepress";
+import { defineConfig, withBase } from "vitepress";
 import { resolve } from "path";
 import vueJsx from "@vitejs/plugin-vue-jsx";
 
@@ -16,8 +16,8 @@ export default defineConfig({
   base,
 
   head: [
-    ["link", { rel: "icon", href: "/favicon.ico" }],
-    ["link", { rel: "stylesheet", href: "/custom.css" }],
+    ["link", { rel: "icon", href: withBase("/favicon.ico") }],
+    ["link", { rel: "stylesheet", href: withBase("/custom.css") }],
   ],
 
   // Vite 配置
