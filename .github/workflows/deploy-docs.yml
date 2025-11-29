@@ -32,6 +32,9 @@ jobs:
       SERVER_USER: ${{ secrets.SERVER_USER }}
       SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
       SERVER_PORT: ${{ secrets.SERVER_PORT }}
+      HARBOR_REGISTRY: 8.136.247.234:5000
+      HARBOR_PROJECT: mx-component
+      HARBOR_REPOSITORY: mx-components-docs
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -59,6 +62,26 @@ jobs:
       - name: 构建文档
         run: pnpm build:docs
         # 只构建文档，不构建其他包
+
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登录 Harbor
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.HARBOR_REGISTRY }}
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+
+      - name: 构建并推送镜像到 Harbor
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.server
+          push: true
+          tags: |
+            ${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/${{ env.HARBOR_REPOSITORY }}:latest
+            ${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/${{ env.HARBOR_REPOSITORY }}:${{ github.sha }}
 
       - name: 清理服务器旧版本
         if: ${{ success() && env.SERVER_HOST }}
