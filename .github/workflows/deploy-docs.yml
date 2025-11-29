@@ -71,6 +71,20 @@ jobs:
           echo "${{ secrets.HARBOR_CA_CERT }}" | sudo tee /usr/local/share/ca-certificates/harbor.crt > /dev/null
           sudo update-ca-certificates
 
+      - name: 验证证书信息
+        run: |
+          echo "=== 验证安装的证书信息 ==="
+          if [ -f /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt ]; then
+            echo "证书文件存在"
+            echo "证书 Subject:"
+            sudo openssl x509 -in /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt -noout -subject
+            echo "证书 SAN:"
+            sudo openssl x509 -in /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt -noout -text | grep -A 1 "Subject Alternative Name" || echo "未找到 SAN"
+          else
+            echo "错误: 证书文件不存在"
+            exit 1
+          fi
+
       - name: 登录 Harbor
         uses: docker/login-action@v3
         with:
