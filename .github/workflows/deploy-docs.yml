@@ -1,15 +1,10 @@
 name: Deploy Docs to GitHub Pages
 
 on:
-  # 在推送到 main 分支时触发（仅当文档或依赖的组件/工具变化时）
+  # 在推送到 main 分支时触发
   push:
     branches:
       - main
-    paths:
-      - 'packages/docs/**'              # 文档内容变化
-      - 'packages/components/**'        # 组件变化（文档依赖）
-      - 'packages/utils/**'             # 工具变化（文档依赖）
-      - '.github/workflows/deploy-docs.yml'  # 工作流配置变化
   
   # 允许手动触发
   workflow_dispatch:
