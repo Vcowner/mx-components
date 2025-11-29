@@ -101,6 +101,28 @@ jobs:
             exit 1
           fi
 
+      - name: 配置 Docker 客户端环境
+        run: |
+          # 确保 Docker 客户端能识别证书
+          # 创建 Docker 配置目录（如果不存在）
+          mkdir -p ~/.docker
+          # 验证证书文件权限
+          HARBOR_HOST=$(echo "${{ env.HARBOR_REGISTRY }}" | cut -d: -f1)
+          sudo chmod 644 /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt
+          sudo chmod 644 /etc/docker/certs.d/${HARBOR_HOST}/ca.crt
+          
+          # 验证证书内容（确认 GitHub Secrets 中的证书是正确的）
+          echo "=== 验证安装的证书 CN ==="
+          sudo openssl x509 -in /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt -noout -subject
+          echo "=== 验证安装的证书 SAN ==="
+          sudo openssl x509 -in /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt -noout -text | grep -A 1 "Subject Alternative Name" || echo "未找到 SAN"
+          
+          # 测试使用系统 CA 证书的 curl 连接
+          echo "=== 测试 HTTPS 连接 ==="
+          curl -v --cacert /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt https://${{ env.HARBOR_REGISTRY }}/api/v2.0/health 2>&1 | head -30 || echo "curl 测试完成"
+          
+          echo "Docker 证书配置完成"
+
       - name: 登录 Harbor
         uses: docker/login-action@v3
         with:
