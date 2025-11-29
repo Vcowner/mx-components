@@ -63,13 +63,29 @@ jobs:
 
       - name: 安装 Harbor 自签证书
         run: |
-          # 创建证书目录
+          # Docker 客户端查找证书的路径规则：
+          # /etc/docker/certs.d/<registry-host>:<port>/ca.crt
+          # 或者 /etc/docker/certs.d/<registry-host>/ca.crt（如果使用默认端口）
+          
+          # 方法1: 使用完整地址（带端口）
           sudo mkdir -p /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}
-          # 写入证书文件
           echo "${{ secrets.HARBOR_CA_CERT }}" | sudo tee /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt > /dev/null
-          # 同时添加到系统 CA 证书（用于 curl 等其他工具）
+          
+          # 方法2: 也安装到不带端口的路径（Docker 可能也会查找）
+          HARBOR_HOST=$(echo "${{ env.HARBOR_REGISTRY }}" | cut -d: -f1)
+          sudo mkdir -p /etc/docker/certs.d/${HARBOR_HOST}
+          echo "${{ secrets.HARBOR_CA_CERT }}" | sudo tee /etc/docker/certs.d/${HARBOR_HOST}/ca.crt > /dev/null
+          
+          # 添加到系统 CA 证书（用于 curl 等其他工具）
           echo "${{ secrets.HARBOR_CA_CERT }}" | sudo tee /usr/local/share/ca-certificates/harbor.crt > /dev/null
           sudo update-ca-certificates
+          
+          # 验证证书文件
+          echo "=== 证书安装位置 ==="
+          echo "位置1: /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt"
+          ls -la /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt || echo "位置1不存在"
+          echo "位置2: /etc/docker/certs.d/${HARBOR_HOST}/ca.crt"
+          ls -la /etc/docker/certs.d/${HARBOR_HOST}/ca.crt || echo "位置2不存在"
 
       - name: 验证证书信息
         run: |
