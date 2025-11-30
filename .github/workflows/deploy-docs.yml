@@ -278,6 +278,12 @@ jobs:
             docker exec ${CONTAINER_NAME} ls -la /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt
             docker exec ${CONTAINER_NAME} ls -la /etc/docker/certs.d/${HARBOR_HOST}/ca.crt
             echo "证书已复制到构建器容器"
+            
+            # 重启构建器容器，使证书生效
+            echo "=== 重启构建器容器 ==="
+            docker restart ${CONTAINER_NAME}
+            sleep 5
+            echo "构建器容器已重启"
           else
             echo "错误: 无法找到构建器容器，列出所有容器:"
             docker ps -a
@@ -285,6 +291,9 @@ jobs:
           fi
 
       - name: 构建并推送镜像到 Harbor
+        env:
+          # 设置环境变量，让 Buildx 使用证书
+          DOCKER_TLS_CERTDIR: /etc/docker/certs.d
         uses: docker/build-push-action@v6
         with:
           context: .
