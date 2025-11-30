@@ -117,9 +117,20 @@ jobs:
             docker exec ${CONTAINER_NAME} mkdir -p /etc/docker/certs.d/${HARBOR_HOST}
             docker cp /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt ${CONTAINER_NAME}:/etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt
             docker cp /etc/docker/certs.d/${HARBOR_HOST}/ca.crt ${CONTAINER_NAME}:/etc/docker/certs.d/${HARBOR_HOST}/ca.crt
+            # 验证证书已复制
+            echo "=== 验证证书已复制到构建器容器 ==="
+            docker exec ${CONTAINER_NAME} ls -la /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt || echo "警告: 证书文件1不存在"
+            docker exec ${CONTAINER_NAME} ls -la /etc/docker/certs.d/${HARBOR_HOST}/ca.crt || echo "警告: 证书文件2不存在"
             # 重启构建器容器使证书生效
+            echo "=== 重启构建器容器 ==="
             docker restart ${CONTAINER_NAME}
-            sleep 5
+            sleep 10
+            # 等待容器完全启动
+            docker exec ${CONTAINER_NAME} echo "构建器容器已启动" || sleep 5
+          else
+            echo "错误: 无法找到构建器容器"
+            docker ps -a | grep buildkit || echo "未找到 buildkit 容器"
+            exit 1
           fi
 
       - name: 登录 Harbor
@@ -136,6 +147,26 @@ jobs:
             BUILDER_NAME="harbor-builder"
           fi
           
+          # 再次确认证书在构建器容器中（防止重启后丢失）
+          CONTAINER_NAME=$(docker ps -a --filter "ancestor=moby/buildkit:latest" --format "{{.Names}}" | head -1)
+          if [ -z "${CONTAINER_NAME}" ]; then
+            CONTAINER_NAME=$(docker ps -a --filter "name=buildx_buildkit_${BUILDER_NAME}" --format "{{.Names}}" | head -1)
+          fi
+          
+          if [ -n "${CONTAINER_NAME}" ]; then
+            HARBOR_HOST=$(echo "${{ env.HARBOR_REGISTRY }}" | cut -d: -f1)
+            # 检查证书是否存在，如果不存在则重新复制
+            if ! docker exec ${CONTAINER_NAME} test -f /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt; then
+              echo "证书不存在，重新复制..."
+              docker exec ${CONTAINER_NAME} mkdir -p /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}
+              docker exec ${CONTAINER_NAME} mkdir -p /etc/docker/certs.d/${HARBOR_HOST}
+              docker cp /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt ${CONTAINER_NAME}:/etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt
+              docker cp /etc/docker/certs.d/${HARBOR_HOST}/ca.crt ${CONTAINER_NAME}:/etc/docker/certs.d/${HARBOR_HOST}/ca.crt
+            fi
+            echo "=== 构建前验证证书 ==="
+            docker exec ${CONTAINER_NAME} ls -la /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt
+          fi
+          
           # 从 package.json 读取版本号
           VERSION=$(node -p "require('./package.json').version")
           echo "构建版本: ${VERSION}"
@@ -146,7 +177,6 @@ jobs:
             --push \
             --tag ${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/${{ env.HARBOR_REPOSITORY }}:latest \
             --tag ${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/${{ env.HARBOR_REPOSITORY }}:${VERSION} \
-            --tag ${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/${{ env.HARBOR_REPOSITORY }}:${{ github.sha }} \
             .
 
       - name: 清理服务器旧版本
