@@ -38,7 +38,7 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # 获取完整历史记录
+          fetch-depth: 0
 
       - name: 配置 pnpm
         uses: pnpm/action-setup@v2
@@ -56,39 +56,30 @@ jobs:
 
       - name: 构建文档
         run: pnpm build:docs
-        # 只构建文档，不构建其他包
 
-      - name: 安装 Harbor 自签证书（在 Buildx 设置之前）
+      - name: 安装 Harbor 自签证书
         run: |
-          # 先安装证书，这样 Buildx 构建器也能访问
           HARBOR_HOST=$(echo "${{ env.HARBOR_REGISTRY }}" | cut -d: -f1)
+          # 安装证书到 Docker 客户端证书目录
           sudo mkdir -p /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}
           sudo mkdir -p /etc/docker/certs.d/${HARBOR_HOST}
           echo "${{ secrets.HARBOR_CA_CERT }}" | sudo tee /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt > /dev/null
           echo "${{ secrets.HARBOR_CA_CERT }}" | sudo tee /etc/docker/certs.d/${HARBOR_HOST}/ca.crt > /dev/null
           sudo chmod 644 /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt
           sudo chmod 644 /etc/docker/certs.d/${HARBOR_HOST}/ca.crt
+          # 添加到系统 CA 证书
+          echo "${{ secrets.HARBOR_CA_CERT }}" | sudo tee /usr/local/share/ca-certificates/harbor.crt > /dev/null
+          sudo update-ca-certificates
 
       - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
-        id: buildx
 
-      - name: 配置 Buildx 构建器使用证书
+      - name: 配置 Buildx 构建器
         run: |
-          # 确保证书目录存在且可读
-          HARBOR_HOST=$(echo "${{ env.HARBOR_REGISTRY }}" | cut -d: -f1)
-          echo "=== 验证证书文件 ==="
-          ls -la /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt
-          ls -la /etc/docker/certs.d/${HARBOR_HOST}/ca.crt
-          
-          # 获取默认构建器名称（去掉特殊字符如 *）
+          # 获取构建器名称（去掉特殊字符）
           BUILDER_NAME=$(docker buildx ls | grep -v "^NAME" | head -1 | awk '{print $1}' | sed 's/\*//g' | tr -d ' ')
-          echo "构建器名称: ${BUILDER_NAME}"
-          
-          # 如果构建器名称为空或包含特殊字符，使用固定名称
           if [ -z "${BUILDER_NAME}" ] || [[ "${BUILDER_NAME}" =~ [^a-zA-Z0-9._-] ]]; then
             BUILDER_NAME="harbor-builder"
-            echo "使用固定构建器名称: ${BUILDER_NAME}"
           fi
           
           # 停止并删除现有构建器（如果存在）
@@ -105,241 +96,46 @@ jobs:
           
           # 启动构建器
           docker buildx inspect ${BUILDER_NAME} --bootstrap
-          
-          # 验证构建器状态
-          docker buildx ls
-
-      - name: 安装 Harbor 自签证书
-        run: |
-          # Docker 客户端查找证书的路径规则：
-          # /etc/docker/certs.d/<registry-host>:<port>/ca.crt
-          # 或者 /etc/docker/certs.d/<registry-host>/ca.crt（如果使用默认端口）
-          
-          # 方法1: 使用完整地址（带端口）
-          sudo mkdir -p /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}
-          echo "${{ secrets.HARBOR_CA_CERT }}" | sudo tee /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt > /dev/null
-          
-          # 方法2: 也安装到不带端口的路径（Docker 可能也会查找）
-          HARBOR_HOST=$(echo "${{ env.HARBOR_REGISTRY }}" | cut -d: -f1)
-          sudo mkdir -p /etc/docker/certs.d/${HARBOR_HOST}
-          echo "${{ secrets.HARBOR_CA_CERT }}" | sudo tee /etc/docker/certs.d/${HARBOR_HOST}/ca.crt > /dev/null
-          
-          # 添加到系统 CA 证书（用于 curl 等其他工具）
-          echo "${{ secrets.HARBOR_CA_CERT }}" | sudo tee /usr/local/share/ca-certificates/harbor.crt > /dev/null
-          sudo update-ca-certificates
-          
-          # 验证证书文件
-          echo "=== 证书安装位置 ==="
-          echo "位置1: /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt"
-          ls -la /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt || echo "位置1不存在"
-          echo "位置2: /etc/docker/certs.d/${HARBOR_HOST}/ca.crt"
-          ls -la /etc/docker/certs.d/${HARBOR_HOST}/ca.crt || echo "位置2不存在"
-
-      - name: 验证证书信息
-        run: |
-          echo "=== 验证安装的证书信息 ==="
-          if [ -f /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt ]; then
-            echo "证书文件存在"
-            echo "证书 Subject:"
-            sudo openssl x509 -in /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt -noout -subject
-            echo "证书 SAN:"
-            sudo openssl x509 -in /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt -noout -text | grep -A 1 "Subject Alternative Name" || echo "未找到 SAN"
-          else
-            echo "错误: 证书文件不存在"
-            exit 1
-          fi
-
-      - name: 配置 Docker 客户端环境
-        run: |
-          # 确保 Docker 客户端能识别证书
-          HARBOR_HOST=$(echo "${{ env.HARBOR_REGISTRY }}" | cut -d: -f1)
-          
-          # 验证证书文件是否存在
-          echo "=== 检查证书文件 ==="
-          ls -la /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt || echo "证书文件1不存在"
-          ls -la /etc/docker/certs.d/${HARBOR_HOST}/ca.crt || echo "证书文件2不存在"
-          
-          # 显示证书的完整信息（不隐藏敏感信息，用于调试）
-          echo "=== 证书文件1的完整内容（前5行） ==="
-          sudo head -5 /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt
-          echo "=== 证书文件1的 CN ==="
-          sudo openssl x509 -in /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt -noout -subject 2>&1
-          echo "=== 证书文件1的 SAN ==="
-          sudo openssl x509 -in /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt -noout -text 2>&1 | grep -A 2 "Subject Alternative Name" || echo "未找到 SAN"
-          
-          # 设置证书文件权限
-          sudo chmod 644 /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt
-          sudo chmod 644 /etc/docker/certs.d/${HARBOR_HOST}/ca.crt 2>/dev/null || true
-          
-          # 测试 curl 连接
-          echo "=== 测试 HTTPS 连接 ==="
-          curl -v --cacert /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt https://${{ env.HARBOR_REGISTRY }}/api/v2.0/health 2>&1 | grep -E "(Connected|SSL|CN=|Subject)" || echo "curl 测试完成"
-          
-          # 创建 Docker 配置目录
-          mkdir -p ~/.docker
-          
-          echo "Docker 证书配置完成"
-
-      - name: 测试 Docker 客户端证书
-        run: |
-          # 尝试使用 Docker 命令直接测试证书
-          echo "=== 测试 Docker 客户端证书识别 ==="
-          HARBOR_HOST=$(echo "${{ env.HARBOR_REGISTRY }}" | cut -d: -f1)
-          
-          # 列出 Docker 证书目录
-          echo "Docker 证书目录内容:"
-          sudo ls -la /etc/docker/certs.d/ || echo "证书目录不存在"
-          sudo ls -la /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ || echo "证书目录1不存在"
-          sudo ls -la /etc/docker/certs.d/${HARBOR_HOST}/ || echo "证书目录2不存在"
-          
-          # 显示证书的实际 CN（关键：确认证书内容是否正确）
-          echo "=== 证书文件1的实际 CN ==="
-          # 直接显示完整的 subject，使用 base64 编码来避免被 GitHub Actions 隐藏
-          CN_SUBJECT=$(sudo openssl x509 -in /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt -noout -subject 2>&1)
-          echo "证书 Subject (base64): $(echo "${CN_SUBJECT}" | base64 -w 0)"
-          # 提取 CN 值
-          CN_VALUE=$(echo "${CN_SUBJECT}" | sed -n 's/.*CN = \([^,]*\).*/\1/p')
-          # 使用 base64 编码显示 CN 值，避免被隐藏
-          echo "证书 CN 值 (base64): $(echo "${CN_VALUE}" | base64 -w 0)"
-          echo "证书 CN 值长度: ${#CN_VALUE} 字符"
-          # 检查 CN 值
-          if [[ "${CN_VALUE}" == "mx-compoments.top" ]]; then
-            echo "✓ 证书 CN 正确（mx-compoments.top）"
-          elif [[ "${CN_VALUE}" == "8.136.247.234" ]]; then
-            echo "✗ 证书 CN 错误：是 IP 地址 8.136.247.234，应该是域名 mx-compoments.top"
-            echo "请更新 GitHub Secrets 中的 HARBOR_CA_CERT 为最新的证书内容"
-          else
-            echo "✗ 证书 CN 错误，应该是 mx-compoments.top，实际是其他值（长度: ${#CN_VALUE}）"
-            echo "请检查 GitHub Secrets 中的 HARBOR_CA_CERT 是否是最新的证书内容"
-          fi
-          
-          echo "=== 证书文件1的实际 SAN ==="
-          sudo openssl x509 -in /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt -noout -text 2>&1 | grep -A 2 "Subject Alternative Name" || echo "未找到 SAN"
-          
-          echo "=== 证书文件2的实际 CN ==="
-          CN_VALUE2=$(sudo openssl x509 -in /etc/docker/certs.d/${HARBOR_HOST}/ca.crt -noout -subject 2>&1 | sed -n 's/.*CN = \([^,]*\).*/\1/p' || echo "无法读取")
-          echo "证书 CN 值: ${CN_VALUE2}"
-          
-          # 获取 Harbor 服务器实际返回的证书
-          echo "=== 获取 Harbor 服务器实际返回的证书 ==="
-          SERVER_CERT_CN=$(echo | openssl s_client -connect ${{ env.HARBOR_REGISTRY }} -servername ${HARBOR_HOST} 2>/dev/null | openssl x509 -noout -subject 2>/dev/null | sed -n 's/.*CN = \([^,]*\).*/\1/p' || echo "无法获取")
-          echo "Harbor 服务器返回的证书 CN: ${SERVER_CERT_CN}"
-          echo "Harbor 服务器返回的证书 CN (base64): $(echo "${SERVER_CERT_CN}" | base64 -w 0)"
-          
-          # 比较服务器证书和本地证书
-          LOCAL_CERT_CN=$(sudo openssl x509 -in /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt -noout -subject 2>&1 | sed -n 's/.*CN = \([^,]*\).*/\1/p')
-          echo "本地证书 CN: ${LOCAL_CERT_CN}"
-          
-          if [[ "${SERVER_CERT_CN}" == "${LOCAL_CERT_CN}" ]]; then
-            echo "✓ 服务器证书和本地证书 CN 一致"
-          else
-            echo "✗ 服务器证书和本地证书 CN 不一致！"
-            echo "  服务器证书 CN: ${SERVER_CERT_CN}"
-            echo "  本地证书 CN: ${LOCAL_CERT_CN}"
-            echo "  这说明 Harbor 服务器上的证书可能还没有更新，或者需要重启 Harbor"
-          fi
-          
-          # 尝试使用 docker login 命令测试（这会显示更详细的错误）
-          echo "=== 尝试 Docker 登录测试 ==="
-          echo "${{ secrets.HARBOR_PASSWORD }}" | docker login ${{ env.HARBOR_REGISTRY }} -u "${{ secrets.HARBOR_USERNAME }}" --password-stdin 2>&1 || echo "Docker 登录测试完成（预期可能失败）"
-
-      - name: 登录 Harbor
-        env:
-          # 设置 Docker 证书目录环境变量（如果 Docker 客户端支持）
-          DOCKER_TLS_CERTDIR: /etc/docker/certs.d
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.HARBOR_REGISTRY }}
-          username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
 
       - name: 将证书复制到 Buildx 构建器容器
-        run: |
-          # 查找所有 buildkit 容器
-          echo "=== 查找 Buildx 构建器容器 ==="
-          docker ps -a | grep buildkit || echo "未找到 buildkit 容器"
-          
-          # 获取构建器容器名称（可能有多种命名格式）
-          CONTAINER_NAME=$(docker ps -a --filter "ancestor=moby/buildkit:latest" --format "{{.Names}}" | head -1)
-          
-          if [ -z "${CONTAINER_NAME}" ]; then
-            # 尝试其他命名格式
-            BUILDER_NAME=$(docker buildx ls | grep -v "^NAME" | head -1 | awk '{print $1}' | sed 's/\*//g' | tr -d ' ')
-            # 如果构建器名称为空或包含特殊字符，使用固定名称
-            if [ -z "${BUILDER_NAME}" ] || [[ "${BUILDER_NAME}" =~ [^a-zA-Z0-9._-] ]]; then
-              BUILDER_NAME="harbor-builder"
-            fi
-            CONTAINER_NAME=$(docker ps -a --filter "name=buildx_buildkit_${BUILDER_NAME}" --format "{{.Names}}" | head -1)
-            if [ -z "${CONTAINER_NAME}" ]; then
-              CONTAINER_NAME=$(docker ps -a --filter "name=${BUILDER_NAME}" --format "{{.Names}}" | head -1)
-            fi
-            echo "尝试使用构建器名称: ${BUILDER_NAME}"
-          fi
-          
-          echo "找到构建器容器: ${CONTAINER_NAME}"
-          
-          if [ -n "${CONTAINER_NAME}" ]; then
-            HARBOR_HOST=$(echo "${{ env.HARBOR_REGISTRY }}" | cut -d: -f1)
-            # 在构建器容器中创建证书目录
-            docker exec ${CONTAINER_NAME} mkdir -p /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}
-            docker exec ${CONTAINER_NAME} mkdir -p /etc/docker/certs.d/${HARBOR_HOST}
-            # 复制证书到构建器容器
-            docker cp /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt ${CONTAINER_NAME}:/etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt
-            docker cp /etc/docker/certs.d/${HARBOR_HOST}/ca.crt ${CONTAINER_NAME}:/etc/docker/certs.d/${HARBOR_HOST}/ca.crt
-            # 验证证书已复制
-            echo "=== 验证证书已复制 ==="
-            docker exec ${CONTAINER_NAME} ls -la /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt
-            docker exec ${CONTAINER_NAME} ls -la /etc/docker/certs.d/${HARBOR_HOST}/ca.crt
-            echo "证书已复制到构建器容器"
-            
-            # 重启构建器容器，使证书生效
-            echo "=== 重启构建器容器 ==="
-            docker restart ${CONTAINER_NAME}
-            sleep 5
-            echo "构建器容器已重启"
-          else
-            echo "错误: 无法找到构建器容器，列出所有容器:"
-            docker ps -a
-            exit 1
-          fi
-
-      - name: 配置 Buildx 构建器使用 insecure-registry
         run: |
           # 获取构建器容器名称
           BUILDER_NAME=$(docker buildx ls | grep -v "^NAME" | head -1 | awk '{print $1}' | sed 's/\*//g' | tr -d ' ')
           if [ -z "${BUILDER_NAME}" ] || [[ "${BUILDER_NAME}" =~ [^a-zA-Z0-9._-] ]]; then
             BUILDER_NAME="harbor-builder"
           fi
+          
           CONTAINER_NAME=$(docker ps -a --filter "ancestor=moby/buildkit:latest" --format "{{.Names}}" | head -1)
           if [ -z "${CONTAINER_NAME}" ]; then
             CONTAINER_NAME=$(docker ps -a --filter "name=buildx_buildkit_${BUILDER_NAME}" --format "{{.Names}}" | head -1)
           fi
           
           if [ -n "${CONTAINER_NAME}" ]; then
-            # 在构建器容器中配置 insecure-registry
-            echo "=== 配置构建器容器使用 insecure-registry ==="
-            # 创建或更新 buildkitd.toml 配置文件
-            HARBOR_REG="${{ env.HARBOR_REGISTRY }}"
-            docker exec ${CONTAINER_NAME} sh -c "echo '[registry.\"${HARBOR_REG}\"]' > /etc/buildkit/buildkitd.toml" || true
-            docker exec ${CONTAINER_NAME} sh -c "echo '  http = true' >> /etc/buildkit/buildkitd.toml" || true
-            docker exec ${CONTAINER_NAME} sh -c "echo '  insecure = true' >> /etc/buildkit/buildkitd.toml" || true
-            # 重启构建器容器使配置生效
+            HARBOR_HOST=$(echo "${{ env.HARBOR_REGISTRY }}" | cut -d: -f1)
+            # 在构建器容器中创建证书目录并复制证书
+            docker exec ${CONTAINER_NAME} mkdir -p /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}
+            docker exec ${CONTAINER_NAME} mkdir -p /etc/docker/certs.d/${HARBOR_HOST}
+            docker cp /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt ${CONTAINER_NAME}:/etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt
+            docker cp /etc/docker/certs.d/${HARBOR_HOST}/ca.crt ${CONTAINER_NAME}:/etc/docker/certs.d/${HARBOR_HOST}/ca.crt
+            # 重启构建器容器使证书生效
             docker restart ${CONTAINER_NAME}
             sleep 5
-            echo "构建器容器已配置并重启"
           fi
+
+      - name: 登录 Harbor
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.HARBOR_REGISTRY }}
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
 
       - name: 构建并推送镜像到 Harbor
         run: |
-          # 获取构建器名称
           BUILDER_NAME=$(docker buildx ls | grep -v "^NAME" | head -1 | awk '{print $1}' | sed 's/\*//g' | tr -d ' ')
           if [ -z "${BUILDER_NAME}" ] || [[ "${BUILDER_NAME}" =~ [^a-zA-Z0-9._-] ]]; then
             BUILDER_NAME="harbor-builder"
           fi
           
-          # 使用 docker buildx build 命令构建并推送
-          # 注意：Buildx 在推送时会使用证书，如果证书验证失败，推送会失败
-          # 我们已经将证书复制到构建器容器中，应该可以正常验证
           docker buildx build \
             --builder ${BUILDER_NAME} \
             --file Dockerfile.server \
@@ -379,9 +175,7 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: packages/docs/.vitepress/dist
-        # 只上传文档构建产物
 
       - name: 部署
         id: deployment
         uses: actions/deploy-pages@v4
-
