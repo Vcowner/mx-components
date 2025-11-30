@@ -145,19 +145,34 @@ jobs:
           sudo ls -la /etc/docker/certs.d/${HARBOR_HOST}/ || echo "证书目录2不存在"
           
           # 显示证书的实际 CN（关键：确认证书内容是否正确）
-          echo "=== 证书文件1的实际 CN ==="
-          sudo openssl x509 -in /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt -noout -subject 2>&1
+          echo "=== 证书文件1的实际 CN（完整输出，不隐藏） ==="
+          # 使用 sed 替换敏感信息，但保留 CN 值
+          sudo openssl x509 -in /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt -noout -subject 2>&1 | sed 's/CN = [^,]*/CN = [显示的值]/' || true
+          # 直接显示 CN 值
+          CN_VALUE=$(sudo openssl x509 -in /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt -noout -subject 2>&1 | sed -n 's/.*CN = \([^,]*\).*/\1/p')
+          echo "证书 CN 值: ${CN_VALUE}"
+          if [[ "${CN_VALUE}" == "mx-compoments.top" ]]; then
+            echo "✓ 证书 CN 正确（mx-compoments.top）"
+          else
+            echo "✗ 证书 CN 错误，应该是 mx-compoments.top，实际是: ${CN_VALUE}"
+            echo "请检查 GitHub Secrets 中的 HARBOR_CA_CERT 是否是最新的证书内容"
+          fi
+          
           echo "=== 证书文件1的实际 SAN ==="
           sudo openssl x509 -in /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt -noout -text 2>&1 | grep -A 2 "Subject Alternative Name" || echo "未找到 SAN"
           
           echo "=== 证书文件2的实际 CN ==="
-          sudo openssl x509 -in /etc/docker/certs.d/${HARBOR_HOST}/ca.crt -noout -subject 2>&1 || echo "证书文件2不存在或无法读取"
+          CN_VALUE2=$(sudo openssl x509 -in /etc/docker/certs.d/${HARBOR_HOST}/ca.crt -noout -subject 2>&1 | sed -n 's/.*CN = \([^,]*\).*/\1/p' || echo "无法读取")
+          echo "证书 CN 值: ${CN_VALUE2}"
           
           # 尝试使用 docker login 命令测试（这会显示更详细的错误）
           echo "=== 尝试 Docker 登录测试 ==="
           echo "${{ secrets.HARBOR_PASSWORD }}" | docker login ${{ env.HARBOR_REGISTRY }} -u "${{ secrets.HARBOR_USERNAME }}" --password-stdin 2>&1 || echo "Docker 登录测试完成（预期可能失败）"
 
       - name: 登录 Harbor
+        env:
+          # 设置 Docker 证书目录环境变量（如果 Docker 客户端支持）
+          DOCKER_TLS_CERTDIR: /etc/docker/certs.d
         uses: docker/login-action@v3
         with:
           registry: ${{ env.HARBOR_REGISTRY }}
