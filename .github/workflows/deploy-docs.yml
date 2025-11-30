@@ -260,30 +260,6 @@ jobs:
             docker ps | grep mx-components-docs || echo "容器未运行"
             docker logs --tail 20 mx-components-docs || echo "无法获取容器日志"
 
-      - name: 清理服务器旧版本
-        if: ${{ success() && env.SERVER_HOST }}
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ env.SERVER_HOST }}
-          username: ${{ env.SERVER_USER || 'root' }}
-          port: ${{ env.SERVER_PORT || '22' }}
-          password: ${{ env.SERVER_PASSWORD }}
-          script: |
-            mkdir -p /www/wwwroot/packages/docs/.vitepress/dist
-            rm -rf /www/wwwroot/packages/docs/.vitepress/dist/*
-
-      - name: 上传静态文件到服务器
-        if: ${{ success() && env.SERVER_HOST }}
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ env.SERVER_HOST }}
-          username: ${{ env.SERVER_USER || 'root' }}
-          port: ${{ env.SERVER_PORT || '22' }}
-          password: ${{ env.SERVER_PASSWORD }}
-          source: "packages/docs/.vitepress/dist"
-          strip_components: 3
-          target: "/www/wwwroot/packages/docs/.vitepress"
-
       - name: 配置 Pages
         uses: actions/configure-pages@v4
 
