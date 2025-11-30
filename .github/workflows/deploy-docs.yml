@@ -27,9 +27,7 @@ jobs:
       SERVER_USER: ${{ secrets.SERVER_USER }}
       SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
       SERVER_PORT: ${{ secrets.SERVER_PORT }}
-      # 使用 HTTP 端口（8080）避免证书验证问题
-      # 注意：这是临时方案，如果解决了 Buildx 证书问题，可以改回 HTTPS 端口（443）
-      HARBOR_REGISTRY: mx-compoments.top:8080
+      HARBOR_REGISTRY: mx-compoments.top:443
       HARBOR_PROJECT: mx-component
       HARBOR_REPOSITORY: mx-components-docs
     environment:
@@ -332,14 +330,23 @@ jobs:
           fi
 
       - name: 构建并推送镜像到 Harbor
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile.server
-          push: true
-          tags: |
-            ${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/${{ env.HARBOR_REPOSITORY }}:latest
-            ${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/${{ env.HARBOR_REPOSITORY }}:${{ github.sha }}
+        run: |
+          # 获取构建器名称
+          BUILDER_NAME=$(docker buildx ls | grep -v "^NAME" | head -1 | awk '{print $1}' | sed 's/\*//g' | tr -d ' ')
+          if [ -z "${BUILDER_NAME}" ] || [[ "${BUILDER_NAME}" =~ [^a-zA-Z0-9._-] ]]; then
+            BUILDER_NAME="harbor-builder"
+          fi
+          
+          # 使用 docker buildx build 命令构建并推送
+          # 注意：Buildx 在推送时会使用证书，如果证书验证失败，推送会失败
+          # 我们已经将证书复制到构建器容器中，应该可以正常验证
+          docker buildx build \
+            --builder ${BUILDER_NAME} \
+            --file Dockerfile.server \
+            --push \
+            --tag ${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/${{ env.HARBOR_REPOSITORY }}:latest \
+            --tag ${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/${{ env.HARBOR_REPOSITORY }}:${{ github.sha }} \
+            .
 
       - name: 清理服务器旧版本
         if: ${{ success() && env.SERVER_HOST }}
