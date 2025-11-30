@@ -303,10 +303,34 @@ jobs:
             exit 1
           fi
 
+      - name: 配置 Buildx 构建器使用 insecure-registry
+        run: |
+          # 获取构建器容器名称
+          BUILDER_NAME=$(docker buildx ls | grep -v "^NAME" | head -1 | awk '{print $1}' | sed 's/\*//g' | tr -d ' ')
+          if [ -z "${BUILDER_NAME}" ] || [[ "${BUILDER_NAME}" =~ [^a-zA-Z0-9._-] ]]; then
+            BUILDER_NAME="harbor-builder"
+          fi
+          CONTAINER_NAME=$(docker ps -a --filter "ancestor=moby/buildkit:latest" --format "{{.Names}}" | head -1)
+          if [ -z "${CONTAINER_NAME}" ]; then
+            CONTAINER_NAME=$(docker ps -a --filter "name=buildx_buildkit_${BUILDER_NAME}" --format "{{.Names}}" | head -1)
+          fi
+          
+          if [ -n "${CONTAINER_NAME}" ]; then
+            # 在构建器容器中配置 insecure-registry
+            echo "=== 配置构建器容器使用 insecure-registry ==="
+            # 创建或更新 buildkitd.toml 配置文件
+            docker exec ${CONTAINER_NAME} sh -c 'cat > /etc/buildkit/buildkitd.toml << EOF
+[registry."${{ env.HARBOR_REGISTRY }}"]
+  http = true
+  insecure = true
+EOF' || echo "无法创建配置文件，尝试其他方法"
+            # 重启构建器容器使配置生效
+            docker restart ${CONTAINER_NAME}
+            sleep 5
+            echo "构建器容器已配置并重启"
+          fi
+
       - name: 构建并推送镜像到 Harbor
-        env:
-          # 设置环境变量，让 Buildx 使用证书
-          DOCKER_TLS_CERTDIR: /etc/docker/certs.d
         uses: docker/build-push-action@v6
         with:
           context: .
