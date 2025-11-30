@@ -209,6 +209,57 @@ jobs:
             --tag ${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/${{ env.HARBOR_REPOSITORY }}:${VERSION} \
             .
 
+      - name: 在服务器上拉取镜像并重启容器
+        if: ${{ success() && env.SERVER_HOST }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ env.SERVER_HOST }}
+          username: ${{ env.SERVER_USER || 'root' }}
+          port: ${{ env.SERVER_PORT || '22' }}
+          password: ${{ env.SERVER_PASSWORD }}
+          script: |
+            # 安装 Harbor 证书（如果还没有安装）
+            echo "=== 安装 Harbor 证书 ==="
+            HARBOR_HOST=$(echo "${{ env.HARBOR_REGISTRY }}" | cut -d: -f1)
+            sudo mkdir -p /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}
+            sudo mkdir -p /etc/docker/certs.d/${HARBOR_HOST}
+            
+            # 如果证书文件不存在，从 GitHub Secrets 创建（需要先配置）
+            if [ ! -f /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt ]; then
+              echo "警告: Harbor 证书文件不存在，请先在服务器上手动安装证书"
+              echo "或者将证书内容添加到服务器上的 /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt"
+            fi
+            
+            # 登录 Harbor
+            echo "=== 登录 Harbor ==="
+            echo "${{ secrets.HARBOR_PASSWORD }}" | docker login ${{ env.HARBOR_REGISTRY }} -u "${{ secrets.HARBOR_USERNAME }}" --password-stdin || echo "Harbor 登录失败或已登录"
+            
+            # 拉取最新镜像
+            echo "=== 拉取最新镜像 ==="
+            docker pull ${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/${{ env.HARBOR_REPOSITORY }}:latest || {
+              echo "拉取镜像失败，尝试使用 --insecure-registry 或检查证书配置"
+              exit 1
+            }
+            
+            # 停止并删除旧容器（如果存在）
+            echo "=== 停止旧容器 ==="
+            docker stop mx-components-docs 2>/dev/null || echo "容器不存在或已停止"
+            docker rm mx-components-docs 2>/dev/null || echo "容器不存在或已删除"
+            
+            # 启动新容器
+            echo "=== 启动新容器 ==="
+            docker run -d \
+              --name mx-components-docs \
+              --restart unless-stopped \
+              -p 8080:80 \
+              ${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/${{ env.HARBOR_REPOSITORY }}:latest
+            
+            # 验证容器状态
+            echo "=== 验证容器状态 ==="
+            sleep 3
+            docker ps | grep mx-components-docs || echo "容器未运行"
+            docker logs --tail 20 mx-components-docs || echo "无法获取容器日志"
+
       - name: 清理服务器旧版本
         if: ${{ success() && env.SERVER_HOST }}
         uses: appleboy/ssh-action@v1.0.3
