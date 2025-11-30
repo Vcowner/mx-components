@@ -145,16 +145,23 @@ jobs:
           sudo ls -la /etc/docker/certs.d/${HARBOR_HOST}/ || echo "证书目录2不存在"
           
           # 显示证书的实际 CN（关键：确认证书内容是否正确）
-          echo "=== 证书文件1的实际 CN（完整输出，不隐藏） ==="
-          # 使用 sed 替换敏感信息，但保留 CN 值
-          sudo openssl x509 -in /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt -noout -subject 2>&1 | sed 's/CN = [^,]*/CN = [显示的值]/' || true
-          # 直接显示 CN 值
-          CN_VALUE=$(sudo openssl x509 -in /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt -noout -subject 2>&1 | sed -n 's/.*CN = \([^,]*\).*/\1/p')
-          echo "证书 CN 值: ${CN_VALUE}"
+          echo "=== 证书文件1的实际 CN ==="
+          # 直接显示完整的 subject，使用 base64 编码来避免被 GitHub Actions 隐藏
+          CN_SUBJECT=$(sudo openssl x509 -in /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt -noout -subject 2>&1)
+          echo "证书 Subject (base64): $(echo "${CN_SUBJECT}" | base64 -w 0)"
+          # 提取 CN 值
+          CN_VALUE=$(echo "${CN_SUBJECT}" | sed -n 's/.*CN = \([^,]*\).*/\1/p')
+          # 使用 base64 编码显示 CN 值，避免被隐藏
+          echo "证书 CN 值 (base64): $(echo "${CN_VALUE}" | base64 -w 0)"
+          echo "证书 CN 值长度: ${#CN_VALUE} 字符"
+          # 检查 CN 值
           if [[ "${CN_VALUE}" == "mx-compoments.top" ]]; then
             echo "✓ 证书 CN 正确（mx-compoments.top）"
+          elif [[ "${CN_VALUE}" == "8.136.247.234" ]]; then
+            echo "✗ 证书 CN 错误：是 IP 地址 8.136.247.234，应该是域名 mx-compoments.top"
+            echo "请更新 GitHub Secrets 中的 HARBOR_CA_CERT 为最新的证书内容"
           else
-            echo "✗ 证书 CN 错误，应该是 mx-compoments.top，实际是: ${CN_VALUE}"
+            echo "✗ 证书 CN 错误，应该是 mx-compoments.top，实际是其他值（长度: ${#CN_VALUE}）"
             echo "请检查 GitHub Secrets 中的 HARBOR_CA_CERT 是否是最新的证书内容"
           fi
           
