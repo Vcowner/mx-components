@@ -29,7 +29,7 @@ jobs:
       SERVER_PORT: ${{ secrets.SERVER_PORT }}
       HARBOR_REGISTRY: mx-compoments.top:443
       HARBOR_PROJECT: mx-component
-      HARBOR_REPOSITORY: mx-components-docs
+      HARBOR_REPOSITORY: docs
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -136,11 +136,16 @@ jobs:
             BUILDER_NAME="harbor-builder"
           fi
           
+          # 从 package.json 读取版本号
+          VERSION=$(node -p "require('./package.json').version")
+          echo "构建版本: ${VERSION}"
+          
           docker buildx build \
             --builder ${BUILDER_NAME} \
             --file Dockerfile.server \
             --push \
             --tag ${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/${{ env.HARBOR_REPOSITORY }}:latest \
+            --tag ${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/${{ env.HARBOR_REPOSITORY }}:${VERSION} \
             --tag ${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/${{ env.HARBOR_REPOSITORY }}:${{ github.sha }} \
             .
 
