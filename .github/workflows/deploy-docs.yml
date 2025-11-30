@@ -71,13 +71,28 @@ jobs:
 
       - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
-        with:
-          # 配置 Buildx 构建器，挂载证书目录
-          driver-opts: |
-            image=moby/buildkit:latest
-            network=host
-            env.BUILDKIT_STEP_LOG_MAX_SIZE=50000000
-            env.BUILDKIT_STEP_LOG_MAX_SPEED=100000000
+        id: buildx
+
+      - name: 配置 Buildx 构建器使用证书
+        run: |
+          # 确保证书目录存在且可读
+          HARBOR_HOST=$(echo "${{ env.HARBOR_REGISTRY }}" | cut -d: -f1)
+          echo "=== 验证证书文件 ==="
+          ls -la /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt
+          ls -la /etc/docker/certs.d/${HARBOR_HOST}/ca.crt
+          
+          # 获取默认构建器名称
+          BUILDER_NAME=$(docker buildx ls | grep -v "^NAME" | head -1 | awk '{print $1}')
+          echo "构建器名称: ${BUILDER_NAME}"
+          
+          # 停止现有构建器
+          docker buildx stop ${BUILDER_NAME} 2>/dev/null || true
+          
+          # 使用 network=host 模式，让构建器访问主机文件系统
+          docker buildx inspect ${BUILDER_NAME} --bootstrap || docker buildx create --use --name ${BUILDER_NAME} --driver docker-container --driver-opt network=host
+          
+          # 验证构建器状态
+          docker buildx ls
 
       - name: 安装 Harbor 自签证书
         run: |
@@ -222,6 +237,29 @@ jobs:
           registry: ${{ env.HARBOR_REGISTRY }}
           username: ${{ secrets.HARBOR_USERNAME }}
           password: ${{ secrets.HARBOR_PASSWORD }}
+
+      - name: 将证书复制到 Buildx 构建器容器
+        run: |
+          # 获取构建器容器名称
+          BUILDER_NAME=$(docker buildx ls | grep -v "^NAME" | head -1 | awk '{print $1}')
+          CONTAINER_NAME="buildx_buildkit_${BUILDER_NAME}"
+          
+          # 等待构建器容器启动
+          sleep 5
+          
+          # 检查容器是否存在
+          if docker ps -a | grep -q ${CONTAINER_NAME}; then
+            HARBOR_HOST=$(echo "${{ env.HARBOR_REGISTRY }}" | cut -d: -f1)
+            # 在构建器容器中创建证书目录
+            docker exec ${CONTAINER_NAME} mkdir -p /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}
+            docker exec ${CONTAINER_NAME} mkdir -p /etc/docker/certs.d/${HARBOR_HOST}
+            # 复制证书到构建器容器
+            docker cp /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt ${CONTAINER_NAME}:/etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt
+            docker cp /etc/docker/certs.d/${HARBOR_HOST}/ca.crt ${CONTAINER_NAME}:/etc/docker/certs.d/${HARBOR_HOST}/ca.crt
+            echo "证书已复制到构建器容器"
+          else
+            echo "警告: 构建器容器不存在，跳过证书复制"
+          fi
 
       - name: 构建并推送镜像到 Harbor
         uses: docker/build-push-action@v6
