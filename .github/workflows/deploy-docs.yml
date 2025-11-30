@@ -218,17 +218,23 @@ jobs:
           port: ${{ env.SERVER_PORT || '22' }}
           password: ${{ env.SERVER_PASSWORD }}
           script: |
-            # 安装 Harbor 证书（如果还没有安装）
+            # 安装 Harbor 证书
             echo "=== 安装 Harbor 证书 ==="
             HARBOR_HOST=$(echo "${{ env.HARBOR_REGISTRY }}" | cut -d: -f1)
             sudo mkdir -p /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}
             sudo mkdir -p /etc/docker/certs.d/${HARBOR_HOST}
             
-            # 如果证书文件不存在，从 GitHub Secrets 创建（需要先配置）
-            if [ ! -f /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt ]; then
-              echo "警告: Harbor 证书文件不存在，请先在服务器上手动安装证书"
-              echo "或者将证书内容添加到服务器上的 /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt"
-            fi
+            # 从 GitHub Secrets 创建证书文件
+            echo "${{ secrets.HARBOR_CA_CERT }}" | sudo tee /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt > /dev/null
+            echo "${{ secrets.HARBOR_CA_CERT }}" | sudo tee /etc/docker/certs.d/${HARBOR_HOST}/ca.crt > /dev/null
+            sudo chmod 644 /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt
+            sudo chmod 644 /etc/docker/certs.d/${HARBOR_HOST}/ca.crt
+            
+            # 验证证书已安装
+            echo "=== 验证证书已安装 ==="
+            ls -la /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt || echo "警告: 证书文件不存在"
+            
+            # Docker 客户端会自动读取证书目录，无需重启 Docker daemon
             
             # 登录 Harbor
             echo "=== 登录 Harbor ==="
