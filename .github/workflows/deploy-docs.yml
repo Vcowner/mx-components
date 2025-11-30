@@ -172,6 +172,25 @@ jobs:
           CN_VALUE2=$(sudo openssl x509 -in /etc/docker/certs.d/${HARBOR_HOST}/ca.crt -noout -subject 2>&1 | sed -n 's/.*CN = \([^,]*\).*/\1/p' || echo "无法读取")
           echo "证书 CN 值: ${CN_VALUE2}"
           
+          # 获取 Harbor 服务器实际返回的证书
+          echo "=== 获取 Harbor 服务器实际返回的证书 ==="
+          SERVER_CERT_CN=$(echo | openssl s_client -connect ${{ env.HARBOR_REGISTRY }} -servername ${HARBOR_HOST} 2>/dev/null | openssl x509 -noout -subject 2>/dev/null | sed -n 's/.*CN = \([^,]*\).*/\1/p' || echo "无法获取")
+          echo "Harbor 服务器返回的证书 CN: ${SERVER_CERT_CN}"
+          echo "Harbor 服务器返回的证书 CN (base64): $(echo "${SERVER_CERT_CN}" | base64 -w 0)"
+          
+          # 比较服务器证书和本地证书
+          LOCAL_CERT_CN=$(sudo openssl x509 -in /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt -noout -subject 2>&1 | sed -n 's/.*CN = \([^,]*\).*/\1/p')
+          echo "本地证书 CN: ${LOCAL_CERT_CN}"
+          
+          if [[ "${SERVER_CERT_CN}" == "${LOCAL_CERT_CN}" ]]; then
+            echo "✓ 服务器证书和本地证书 CN 一致"
+          else
+            echo "✗ 服务器证书和本地证书 CN 不一致！"
+            echo "  服务器证书 CN: ${SERVER_CERT_CN}"
+            echo "  本地证书 CN: ${LOCAL_CERT_CN}"
+            echo "  这说明 Harbor 服务器上的证书可能还没有更新，或者需要重启 Harbor"
+          fi
+          
           # 尝试使用 docker login 命令测试（这会显示更详细的错误）
           echo "=== 尝试 Docker 登录测试 ==="
           echo "${{ secrets.HARBOR_PASSWORD }}" | docker login ${{ env.HARBOR_REGISTRY }} -u "${{ secrets.HARBOR_USERNAME }}" --password-stdin 2>&1 || echo "Docker 登录测试完成（预期可能失败）"
