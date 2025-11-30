@@ -133,6 +133,36 @@ jobs:
             exit 1
           fi
 
+      - name: 配置 Buildx 构建器跳过 TLS 验证
+        run: |
+          # 获取构建器容器名称
+          BUILDER_NAME=$(docker buildx ls | grep -v "^NAME" | head -1 | awk '{print $1}' | sed 's/\*//g' | tr -d ' ')
+          if [ -z "${BUILDER_NAME}" ] || [[ "${BUILDER_NAME}" =~ [^a-zA-Z0-9._-] ]]; then
+            BUILDER_NAME="harbor-builder"
+          fi
+          
+          CONTAINER_NAME=$(docker ps -a --filter "ancestor=moby/buildkit:latest" --format "{{.Names}}" | head -1)
+          if [ -z "${CONTAINER_NAME}" ]; then
+            CONTAINER_NAME=$(docker ps -a --filter "name=buildx_buildkit_${BUILDER_NAME}" --format "{{.Names}}" | head -1)
+          fi
+          
+          if [ -n "${CONTAINER_NAME}" ]; then
+            echo "=== 配置构建器容器跳过 TLS 验证 ==="
+            HARBOR_REG="${{ env.HARBOR_REGISTRY }}"
+            # 创建 buildkitd.toml 配置文件，配置 insecure-registry
+            docker exec ${CONTAINER_NAME} sh -c "echo '[registry.\"${HARBOR_REG}\"]' > /etc/buildkit/buildkitd.toml" || true
+            docker exec ${CONTAINER_NAME} sh -c "echo '  http = true' >> /etc/buildkit/buildkitd.toml" || true
+            docker exec ${CONTAINER_NAME} sh -c "echo '  insecure = true' >> /etc/buildkit/buildkitd.toml" || true
+            # 验证配置文件
+            echo "=== 验证 buildkitd.toml 配置 ==="
+            docker exec ${CONTAINER_NAME} cat /etc/buildkit/buildkitd.toml || echo "配置文件不存在"
+            # 重启构建器容器使配置生效
+            echo "=== 重启构建器容器使配置生效 ==="
+            docker restart ${CONTAINER_NAME}
+            sleep 10
+            echo "构建器容器已配置并重启"
+          fi
+
       - name: 登录 Harbor
         uses: docker/login-action@v3
         with:
