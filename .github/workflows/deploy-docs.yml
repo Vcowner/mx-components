@@ -321,11 +321,10 @@ jobs:
             # 在构建器容器中配置 insecure-registry
             echo "=== 配置构建器容器使用 insecure-registry ==="
             # 创建或更新 buildkitd.toml 配置文件
-            docker exec ${CONTAINER_NAME} sh -c 'cat > /etc/buildkit/buildkitd.toml << EOF
-[registry."${{ env.HARBOR_REGISTRY }}"]
-  http = true
-  insecure = true
-EOF' || echo "无法创建配置文件，尝试其他方法"
+            HARBOR_REG="${{ env.HARBOR_REGISTRY }}"
+            docker exec ${CONTAINER_NAME} sh -c "echo '[registry.\"${HARBOR_REG}\"]' > /etc/buildkit/buildkitd.toml" || true
+            docker exec ${CONTAINER_NAME} sh -c "echo '  http = true' >> /etc/buildkit/buildkitd.toml" || true
+            docker exec ${CONTAINER_NAME} sh -c "echo '  insecure = true' >> /etc/buildkit/buildkitd.toml" || true
             # 重启构建器容器使配置生效
             docker restart ${CONTAINER_NAME}
             sleep 5
