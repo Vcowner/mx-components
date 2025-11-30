@@ -81,15 +81,21 @@ jobs:
           ls -la /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt
           ls -la /etc/docker/certs.d/${HARBOR_HOST}/ca.crt
           
-          # 获取默认构建器名称
-          BUILDER_NAME=$(docker buildx ls | grep -v "^NAME" | head -1 | awk '{print $1}')
+          # 获取默认构建器名称（去掉特殊字符如 *）
+          BUILDER_NAME=$(docker buildx ls | grep -v "^NAME" | head -1 | awk '{print $1}' | sed 's/\*//g' | tr -d ' ')
           echo "构建器名称: ${BUILDER_NAME}"
           
-          # 停止并删除现有构建器
+          # 如果构建器名称为空或包含特殊字符，使用固定名称
+          if [ -z "${BUILDER_NAME}" ] || [[ "${BUILDER_NAME}" =~ [^a-zA-Z0-9._-] ]]; then
+            BUILDER_NAME="harbor-builder"
+            echo "使用固定构建器名称: ${BUILDER_NAME}"
+          fi
+          
+          # 停止并删除现有构建器（如果存在）
           docker buildx stop ${BUILDER_NAME} 2>/dev/null || true
           docker buildx rm ${BUILDER_NAME} 2>/dev/null || true
           
-          # 创建新的构建器，使用 volume mount 挂载证书目录
+          # 创建新的构建器，使用 network=host 模式
           docker buildx create \
             --name ${BUILDER_NAME} \
             --driver docker-container \
@@ -258,8 +264,15 @@ jobs:
           
           if [ -z "${CONTAINER_NAME}" ]; then
             # 尝试其他命名格式
-            BUILDER_NAME=$(docker buildx ls | grep -v "^NAME" | head -1 | awk '{print $1}')
-            CONTAINER_NAME=$(docker ps -a --filter "name=buildx" --format "{{.Names}}" | head -1)
+            BUILDER_NAME=$(docker buildx ls | grep -v "^NAME" | head -1 | awk '{print $1}' | sed 's/\*//g' | tr -d ' ')
+            # 如果构建器名称为空或包含特殊字符，使用固定名称
+            if [ -z "${BUILDER_NAME}" ] || [[ "${BUILDER_NAME}" =~ [^a-zA-Z0-9._-] ]]; then
+              BUILDER_NAME="harbor-builder"
+            fi
+            CONTAINER_NAME=$(docker ps -a --filter "name=buildx_buildkit_${BUILDER_NAME}" --format "{{.Names}}" | head -1)
+            if [ -z "${CONTAINER_NAME}" ]; then
+              CONTAINER_NAME=$(docker ps -a --filter "name=${BUILDER_NAME}" --format "{{.Names}}" | head -1)
+            fi
             echo "尝试使用构建器名称: ${BUILDER_NAME}"
           fi
           
