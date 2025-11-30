@@ -218,21 +218,30 @@ jobs:
           port: ${{ env.SERVER_PORT || '22' }}
           password: ${{ env.SERVER_PASSWORD }}
           script: |
-            # 安装 Harbor 证书
-            echo "=== 安装 Harbor 证书 ==="
+            # 检查并安装 Harbor 证书
+            echo "=== 检查 Harbor 证书 ==="
             HARBOR_HOST=$(echo "${{ env.HARBOR_REGISTRY }}" | cut -d: -f1)
-            sudo mkdir -p /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}
-            sudo mkdir -p /etc/docker/certs.d/${HARBOR_HOST}
+            CERT_PATH="/etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt"
             
-            # 从 GitHub Secrets 创建证书文件
-            echo "${{ secrets.HARBOR_CA_CERT }}" | sudo tee /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt > /dev/null
-            echo "${{ secrets.HARBOR_CA_CERT }}" | sudo tee /etc/docker/certs.d/${HARBOR_HOST}/ca.crt > /dev/null
-            sudo chmod 644 /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt
-            sudo chmod 644 /etc/docker/certs.d/${HARBOR_HOST}/ca.crt
+            # 检查证书是否已经在正确位置
+            if [ -f "${CERT_PATH}" ]; then
+              echo "证书已存在于 ${CERT_PATH}，跳过安装"
+            else
+              echo "证书不存在，开始安装..."
+              sudo mkdir -p /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}
+              sudo mkdir -p /etc/docker/certs.d/${HARBOR_HOST}
+              
+              # 从 GitHub Secrets 创建证书文件
+              echo "${{ secrets.HARBOR_CA_CERT }}" | sudo tee ${CERT_PATH} > /dev/null
+              echo "${{ secrets.HARBOR_CA_CERT }}" | sudo tee /etc/docker/certs.d/${HARBOR_HOST}/ca.crt > /dev/null
+              sudo chmod 644 ${CERT_PATH}
+              sudo chmod 644 /etc/docker/certs.d/${HARBOR_HOST}/ca.crt
+              echo "证书已安装到 ${CERT_PATH}"
+            fi
             
-            # 验证证书已安装
-            echo "=== 验证证书已安装 ==="
-            ls -la /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt || echo "警告: 证书文件不存在"
+            # 验证证书文件
+            echo "=== 验证证书文件 ==="
+            ls -la ${CERT_PATH} || echo "警告: 证书文件不存在"
             
             # Docker 客户端会自动读取证书目录，无需重启 Docker daemon
             
