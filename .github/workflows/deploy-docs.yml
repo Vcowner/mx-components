@@ -85,11 +85,20 @@ jobs:
           BUILDER_NAME=$(docker buildx ls | grep -v "^NAME" | head -1 | awk '{print $1}')
           echo "构建器名称: ${BUILDER_NAME}"
           
-          # 停止现有构建器
+          # 停止并删除现有构建器
           docker buildx stop ${BUILDER_NAME} 2>/dev/null || true
+          docker buildx rm ${BUILDER_NAME} 2>/dev/null || true
           
-          # 使用 network=host 模式，让构建器访问主机文件系统
-          docker buildx inspect ${BUILDER_NAME} --bootstrap || docker buildx create --use --name ${BUILDER_NAME} --driver docker-container --driver-opt network=host
+          # 创建新的构建器，使用 volume mount 挂载证书目录
+          docker buildx create \
+            --name ${BUILDER_NAME} \
+            --driver docker-container \
+            --driver-opt image=moby/buildkit:latest \
+            --driver-opt network=host \
+            --use
+          
+          # 启动构建器
+          docker buildx inspect ${BUILDER_NAME} --bootstrap
           
           # 验证构建器状态
           docker buildx ls
@@ -240,15 +249,23 @@ jobs:
 
       - name: 将证书复制到 Buildx 构建器容器
         run: |
-          # 获取构建器容器名称
-          BUILDER_NAME=$(docker buildx ls | grep -v "^NAME" | head -1 | awk '{print $1}')
-          CONTAINER_NAME="buildx_buildkit_${BUILDER_NAME}"
+          # 查找所有 buildkit 容器
+          echo "=== 查找 Buildx 构建器容器 ==="
+          docker ps -a | grep buildkit || echo "未找到 buildkit 容器"
           
-          # 等待构建器容器启动
-          sleep 5
+          # 获取构建器容器名称（可能有多种命名格式）
+          CONTAINER_NAME=$(docker ps -a --filter "ancestor=moby/buildkit:latest" --format "{{.Names}}" | head -1)
           
-          # 检查容器是否存在
-          if docker ps -a | grep -q ${CONTAINER_NAME}; then
+          if [ -z "${CONTAINER_NAME}" ]; then
+            # 尝试其他命名格式
+            BUILDER_NAME=$(docker buildx ls | grep -v "^NAME" | head -1 | awk '{print $1}')
+            CONTAINER_NAME=$(docker ps -a --filter "name=buildx" --format "{{.Names}}" | head -1)
+            echo "尝试使用构建器名称: ${BUILDER_NAME}"
+          fi
+          
+          echo "找到构建器容器: ${CONTAINER_NAME}"
+          
+          if [ -n "${CONTAINER_NAME}" ]; then
             HARBOR_HOST=$(echo "${{ env.HARBOR_REGISTRY }}" | cut -d: -f1)
             # 在构建器容器中创建证书目录
             docker exec ${CONTAINER_NAME} mkdir -p /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}
@@ -256,9 +273,15 @@ jobs:
             # 复制证书到构建器容器
             docker cp /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt ${CONTAINER_NAME}:/etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt
             docker cp /etc/docker/certs.d/${HARBOR_HOST}/ca.crt ${CONTAINER_NAME}:/etc/docker/certs.d/${HARBOR_HOST}/ca.crt
+            # 验证证书已复制
+            echo "=== 验证证书已复制 ==="
+            docker exec ${CONTAINER_NAME} ls -la /etc/docker/certs.d/${{ env.HARBOR_REGISTRY }}/ca.crt
+            docker exec ${CONTAINER_NAME} ls -la /etc/docker/certs.d/${HARBOR_HOST}/ca.crt
             echo "证书已复制到构建器容器"
           else
-            echo "警告: 构建器容器不存在，跳过证书复制"
+            echo "错误: 无法找到构建器容器，列出所有容器:"
+            docker ps -a
+            exit 1
           fi
 
       - name: 构建并推送镜像到 Harbor
